@@ -1702,6 +1702,7 @@
                             <td><span class="badge badge-success">✅ ${vente.statut}</span></td>
                             <td>
                                 <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;" onclick="viewVenteDetails('${vente.id}')">👁️</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture">🧾</button>
                                 ${currentUser.permissions.canDelete ? 
                                     `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteVente('${vente.id}')" title="Supprimer la vente">🗑️</button>` : 
                                     ''
@@ -1830,6 +1831,7 @@
                             <td><span class="badge badge-success">✅ ${vente.statut}</span></td>
                             <td>
                                 <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="viewVenteDetails('${vente.id}')">👁️</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-left:4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture">🧾</button>
                             </td>
                         </tr>
                     `;
@@ -3532,7 +3534,44 @@
             printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Liste des Factures</div></div><div class="meta">${factures.length} factures — Total : ${formatMoney(total)}</div></div><h2>📄 Toutes les Factures</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Émis par</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="3"><b>TOTAL</b></td><td><b>${formatMoney(total)}</b></td><td colspan="2"></td></tr></tbody></table>`);
         }
 
-        // --- Imprimer une facture individuelle ---
+        // --- Imprimer facture directement depuis une vente ---
+        function printVenteFacture(venteId) {
+            const ventes = db.load('ventes');
+            const v = ventes.find(x => x.id === venteId);
+            if (!v) { showAlert('Vente introuvable', 'error'); return; }
+            const numero = 'F-' + v.id.slice(-8).toUpperCase();
+            printWindow(`
+                <div class="header">
+                    <div>
+                        <div class="logo">🍺 KSP BUSINESS</div>
+                        <div style="font-size:11px;color:#666;">Dépôt de Boissons</div>
+                    </div>
+                    <div class="meta"><b>FACTURE ${numero}</b><br>Date : ${formatDate(v.date)}<br>Vendeur : ${v.utilisateur}</div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="font-weight:700;font-size:13px;">CLIENT</div>
+                    <div style="font-size:14px;color:#333;">${v.client}</div>
+                </div>
+                <table>
+                    <thead><tr><th>Produit</th><th style="text-align:center;">Quantité</th><th style="text-align:right;">Prix Unitaire</th><th style="text-align:right;">Total</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>${v.produitNom}</td>
+                            <td style="text-align:center;">${v.quantite}</td>
+                            <td style="text-align:right;">${formatMoney(v.prixUnitaire)}</td>
+                            <td style="text-align:right;font-weight:bold;">${formatMoney(v.total)}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="3" style="text-align:right;"><b>TOTAL À PAYER</b></td>
+                            <td style="text-align:right;font-size:15px;color:#f59e0b;"><b>${formatMoney(v.total)}</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="font-size:11px;color:#999;text-align:center;margin-top:12px;">Merci pour votre achat !</p>
+            `);
+        }
+
+        // --- Imprimer une facture depuis le module Factures ---
         function printFacture(factureId) {
             const factures = db.load('factures');
             const ventes = db.load('ventes');
@@ -3541,21 +3580,37 @@
             const v = ventes.find(x => x.id === f.venteId);
             printWindow(`
                 <div class="header">
-                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons</div></div>
+                    <div>
+                        <div class="logo">🍺 KSP BUSINESS</div>
+                        <div style="font-size:11px;color:#666;">Dépôt de Boissons</div>
+                    </div>
                     <div class="meta"><b>FACTURE ${f.numero}</b><br>Date : ${formatDate(f.date)}<br>Statut : ${f.statut}</div>
                 </div>
-                <div class="facture-box">
-                    <h2>Détails de la Facture</h2>
-                    <div class="facture-row"><span>N° Facture</span><b>${f.numero}</b></div>
-                    <div class="facture-row"><span>Client</span><b>${f.client}</b></div>
-                    <div class="facture-row"><span>Date</span><span>${formatDate(f.date)}</span></div>
-                    ${v ? `
-                    <div class="facture-row"><span>Produit</span><span>${v.produitNom}</span></div>
-                    <div class="facture-row"><span>Quantité</span><span>${v.quantite}</span></div>
-                    <div class="facture-row"><span>Prix unitaire</span><span>${formatMoney(v.prixUnitaire)}</span></div>` : ''}
-                    <div class="facture-total"><span>TOTAL</span><span>${formatMoney(f.total)}</span></div>
+                <div style="margin-bottom:16px;">
+                    <div style="font-weight:700;font-size:13px;">CLIENT</div>
+                    <div style="font-size:14px;color:#333;">${f.client}</div>
                 </div>
-                <p style="margin-top:16px;font-size:11px;color:#666;">Émis par : ${f.utilisateur}</p>
+                ${v ? `
+                <table>
+                    <thead><tr><th>Produit</th><th style="text-align:center;">Quantité</th><th style="text-align:right;">Prix Unitaire</th><th style="text-align:right;">Total</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>${v.produitNom}</td>
+                            <td style="text-align:center;">${v.quantite}</td>
+                            <td style="text-align:right;">${formatMoney(v.prixUnitaire)}</td>
+                            <td style="text-align:right;font-weight:bold;">${formatMoney(v.total)}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="3" style="text-align:right;"><b>TOTAL À PAYER</b></td>
+                            <td style="text-align:right;font-size:15px;color:#f59e0b;"><b>${formatMoney(f.total)}</b></td>
+                        </tr>
+                    </tbody>
+                </table>` : `
+                <div class="facture-box">
+                    <div class="facture-total"><span>TOTAL</span><span>${formatMoney(f.total)}</span></div>
+                </div>`}
+                <p style="font-size:11px;color:#666;margin-top:8px;">Émis par : ${f.utilisateur}</p>
+                <p style="font-size:11px;color:#999;text-align:center;margin-top:12px;">Merci pour votre achat !</p>
             `);
         }
 
