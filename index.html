@@ -592,26 +592,63 @@
 
                 <!-- Factures -->
                 <div id="page-factures" class="page">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="card-icon">📄</span>
-                                Gestion des Factures
+                    <!-- Onglets -->
+                    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                        <button id="tab-btn-liste" class="btn btn-primary" onclick="switchFactureTab('liste')" style="font-size:12px;">📋 Toutes les Factures</button>
+                        <button id="tab-btn-client" class="btn btn-outline" onclick="switchFactureTab('client')" style="font-size:12px;">👤 Par Client</button>
+                        <button id="tab-btn-jour" class="btn btn-outline" onclick="switchFactureTab('jour')" style="font-size:12px;">📅 Par Jour</button>
+                        <button id="tab-btn-operation" class="btn btn-outline" onclick="switchFactureTab('operation')" style="font-size:12px;">🔄 Par Opération</button>
+                    </div>
+
+                    <!-- Vue : Toutes les Factures -->
+                    <div id="tab-liste" class="facture-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">📄</span>Gestion des Factures</div>
+                                <div class="flex gap-2">
+                                    <button class="btn btn-outline" onclick="printAllFactures()"><span>🖨️</span> Imprimer Tout</button>
+                                    <button class="btn btn-primary" onclick="generateInvoice()"><span>➕</span> Générer Facture</button>
+                                </div>
                             </div>
-                            <div class="flex gap-2">
-                                <button class="btn btn-outline" onclick="printAllFactures()"><span>🖨️</span> Imprimer Tout</button>
-                                <button class="btn btn-primary" onclick="generateInvoice()">
-                                    <span>➕</span> Générer Facture
-                                </button>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead><tr><th>Numéro</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead>
+                                    <tbody id="factures-table"></tbody>
+                                </table>
                             </div>
                         </div>
-                        <div class="table-container">
-                            <table class="table">
-                                <thead>
-                                    <tr><th>Numéro</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Actions</th></tr>
-                                </thead>
-                                <tbody id="factures-table"></tbody>
-                            </table>
+                    </div>
+
+                    <!-- Vue : Par Client -->
+                    <div id="tab-client" class="facture-tab" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">👤</span>Factures par Client</div>
+                                <button class="btn btn-outline" onclick="printFacturesParClient()"><span>🖨️</span> Imprimer</button>
+                            </div>
+                            <div id="factures-par-client"></div>
+                        </div>
+                    </div>
+
+                    <!-- Vue : Par Jour -->
+                    <div id="tab-jour" class="facture-tab" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">📅</span>Factures par Jour</div>
+                                <button class="btn btn-outline" onclick="printFacturesParJour()"><span>🖨️</span> Imprimer</button>
+                            </div>
+                            <div id="factures-par-jour"></div>
+                        </div>
+                    </div>
+
+                    <!-- Vue : Par Opération -->
+                    <div id="tab-operation" class="facture-tab" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">🔄</span>Factures par Opération (Produit)</div>
+                                <button class="btn btn-outline" onclick="printFacturesParOperation()"><span>🖨️</span> Imprimer</button>
+                            </div>
+                            <div id="factures-par-operation"></div>
                         </div>
                     </div>
                 </div>
@@ -2494,29 +2531,229 @@
         }
 
 
-        // Autres fonctions de rendu...
+        // ============================================================
+        //  MODULE FACTURES - AGRÉGATION PAR CLIENT / JOUR / OPÉRATION
+        // ============================================================
+
+        let currentFactureTab = 'liste';
+
+        function switchFactureTab(tab) {
+            currentFactureTab = tab;
+            document.querySelectorAll('.facture-tab').forEach(el => el.style.display = 'none');
+            document.getElementById('tab-' + tab).style.display = 'block';
+            ['liste','client','jour','operation'].forEach(t => {
+                const btn = document.getElementById('tab-btn-' + t);
+                if (btn) { btn.className = t === tab ? 'btn btn-primary' : 'btn btn-outline'; btn.style.fontSize = '12px'; }
+            });
+            renderFactures();
+        }
+
         function renderFactures() {
             const factures = db.load('factures').sort((a, b) => new Date(b.date) - new Date(a.date));
+            const ventes = db.load('ventes');
+
+            // --- Vue liste ---
             const tbody = document.getElementById('factures-table');
-            
-            tbody.innerHTML = factures.length === 0 ? 
-                '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucune facture générée</td></tr>' :
-                factures.map(facture => `
-                    <tr>
-                        <td style="font-family: monospace; font-weight: bold;">${facture.numero}</td>
-                        <td style="font-size: 12px;">${formatDate(facture.date)}</td>
-                        <td>${facture.client}</td>
-                        <td style="color: var(--secondary); font-weight: bold;">${formatMoney(facture.total)}</td>
-                        <td><span class="badge badge-warning">${facture.statut}</span></td>
-                        <td>
-                            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;" onclick="printFacture('${facture.id}')" title="Imprimer la facture">🖨️</button>
-                            ${currentUser.permissions.canDelete ? 
-                                `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteFacture('${facture.id}')" title="Supprimer la facture">🗑️</button>` : 
-                                ''
-                            }
-                        </td>
-                    </tr>
-                `).join('');
+            if (tbody) {
+                tbody.innerHTML = factures.length === 0 ?
+                    '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Aucune facture générée</td></tr>' :
+                    factures.map(facture => `
+                        <tr>
+                            <td style="font-family:monospace;font-weight:bold;">${facture.numero}</td>
+                            <td style="font-size:12px;">${formatDate(facture.date)}</td>
+                            <td>${facture.client}</td>
+                            <td style="color:var(--secondary);font-weight:bold;">${formatMoney(facture.total)}</td>
+                            <td><span class="badge badge-warning">${facture.statut}</span></td>
+                            <td>
+                                <button class="btn btn-outline" style="padding:4px 8px;font-size:11px;margin-right:4px;" onclick="printFacture('${facture.id}')" title="Imprimer">🖨️</button>
+                                ${currentUser.permissions.canDelete ? `<button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteFacture('${facture.id}')">🗑️</button>` : ''}
+                            </td>
+                        </tr>`).join('');
+            }
+
+            // --- Vue par client ---
+            const divClient = document.getElementById('factures-par-client');
+            if (divClient) {
+                const parClient = {};
+                factures.forEach(f => {
+                    if (!parClient[f.client]) parClient[f.client] = { total: 0, count: 0, factures: [] };
+                    parClient[f.client].total += f.total;
+                    parClient[f.client].count++;
+                    parClient[f.client].factures.push(f);
+                });
+                if (!Object.keys(parClient).length) { divClient.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Aucune facture</p>'; return; }
+                divClient.innerHTML = Object.entries(parClient).sort((a,b) => b[1].total - a[1].total).map(([client, data]) => `
+                    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+                        <div style="background:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+                            <div style="font-weight:700;color:var(--text-primary);">👤 ${client}</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <span style="font-size:12px;color:var(--text-muted);">${data.count} facture(s)</span>
+                                <span style="font-weight:800;color:var(--primary);font-size:16px;">${formatMoney(data.total)}</span>
+                                <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printClientFactures('${client}')">🖨️</button>
+                            </div>
+                        </div>
+                        <table class="table" style="margin:0;">
+                            <thead><tr><th>N° Facture</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead>
+                            <tbody>${data.factures.map(f => `
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:bold;">${f.numero}</td>
+                                    <td>${formatDate(f.date)}</td>
+                                    <td style="color:var(--secondary);font-weight:bold;">${formatMoney(f.total)}</td>
+                                    <td><span class="badge badge-warning">${f.statut}</span></td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`).join('');
+            }
+
+            // --- Vue par jour ---
+            const divJour = document.getElementById('factures-par-jour');
+            if (divJour) {
+                const parJour = {};
+                factures.forEach(f => {
+                    const jour = f.date.slice(0, 10);
+                    if (!parJour[jour]) parJour[jour] = { total: 0, count: 0, factures: [] };
+                    parJour[jour].total += f.total;
+                    parJour[jour].count++;
+                    parJour[jour].factures.push(f);
+                });
+                if (!Object.keys(parJour).length) { divJour.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Aucune facture</p>'; return; }
+                divJour.innerHTML = Object.entries(parJour).sort((a,b) => b[0].localeCompare(a[0])).map(([jour, data]) => `
+                    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+                        <div style="background:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+                            <div style="font-weight:700;color:var(--text-primary);">📅 ${new Date(jour).toLocaleDateString('fr-FR', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <span style="font-size:12px;color:var(--text-muted);">${data.count} facture(s)</span>
+                                <span style="font-weight:800;color:var(--primary);font-size:16px;">${formatMoney(data.total)}</span>
+                                <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printJourFactures('${jour}')">🖨️</button>
+                            </div>
+                        </div>
+                        <table class="table" style="margin:0;">
+                            <thead><tr><th>N° Facture</th><th>Client</th><th>Montant</th><th>Statut</th></tr></thead>
+                            <tbody>${data.factures.map(f => `
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:bold;">${f.numero}</td>
+                                    <td>${f.client}</td>
+                                    <td style="color:var(--secondary);font-weight:bold;">${formatMoney(f.total)}</td>
+                                    <td><span class="badge badge-warning">${f.statut}</span></td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`).join('');
+            }
+
+            // --- Vue par opération (produit vendu) ---
+            const divOp = document.getElementById('factures-par-operation');
+            if (divOp) {
+                const parOp = {};
+                factures.forEach(f => {
+                    const v = ventes.find(x => x.id === f.venteId);
+                    const key = v ? v.produitNom : 'Produit inconnu';
+                    if (!parOp[key]) parOp[key] = { total: 0, count: 0, qte: 0, factures: [], ventes: [] };
+                    parOp[key].total += f.total;
+                    parOp[key].count++;
+                    parOp[key].factures.push(f);
+                    if (v) { parOp[key].qte += v.quantite; parOp[key].ventes.push(v); }
+                });
+                if (!Object.keys(parOp).length) { divOp.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Aucune facture</p>'; return; }
+                divOp.innerHTML = Object.entries(parOp).sort((a,b) => b[1].total - a[1].total).map(([produit, data]) => `
+                    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+                        <div style="background:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+                            <div style="font-weight:700;color:var(--text-primary);">🍺 ${produit}</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <span style="font-size:12px;color:var(--text-muted);">${data.count} vente(s) · ${data.qte} unités</span>
+                                <span style="font-weight:800;color:var(--primary);font-size:16px;">${formatMoney(data.total)}</span>
+                                <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printOperationFactures('${encodeURIComponent(produit)}')">🖨️</button>
+                            </div>
+                        </div>
+                        <table class="table" style="margin:0;">
+                            <thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Qté</th><th>Montant</th></tr></thead>
+                            <tbody>${data.factures.map((f,i) => {
+                                const v = data.ventes[i];
+                                return `<tr>
+                                    <td style="font-family:monospace;font-weight:bold;">${f.numero}</td>
+                                    <td>${formatDate(f.date)}</td>
+                                    <td>${f.client}</td>
+                                    <td style="text-align:center;">${v ? v.quantite : '-'}</td>
+                                    <td style="color:var(--secondary);font-weight:bold;">${formatMoney(f.total)}</td>
+                                </tr>`;}).join('')}
+                            </tbody>
+                        </table>
+                    </div>`).join('');
+            }
+        }
+
+        // --- Impression agrégée par client ---
+        function printClientFactures(client) {
+            const factures = db.load('factures').filter(f => f.client === client).sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const rows = factures.map(f => { const v = ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;">${v?formatMoney(v.prixUnitaire):'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Relevé de Factures</div></div><div class="meta"><b>CLIENT : ${client}</b><br>${factures.length} facture(s)</div></div><table><thead><tr><th>N° Facture</th><th>Date</th><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="5" style="text-align:right;"><b>TOTAL CLIENT ${client}</b></td><td style="text-align:right;"><b>${formatMoney(total)}</b></td></tr></tbody></table>`);
+        }
+
+        // --- Impression agrégée par jour ---
+        function printJourFactures(jour) {
+            const factures = db.load('factures').filter(f => f.date.slice(0,10) === jour).sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const dateLabel = new Date(jour).toLocaleDateString('fr-FR', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+            const rows = factures.map(f => { const v = ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${f.client}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport Journalier</div></div><div class="meta"><b>${dateLabel}</b><br>${factures.length} facture(s)</div></div><table><thead><tr><th>N° Facture</th><th>Client</th><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="4" style="text-align:right;"><b>TOTAL DU JOUR</b></td><td style="text-align:right;"><b>${formatMoney(total)}</b></td></tr></tbody></table>`);
+        }
+
+        // --- Impression agrégée par opération (produit) ---
+        function printOperationFactures(produitEncoded) {
+            const produit = decodeURIComponent(produitEncoded);
+            const ventes = db.load('ventes');
+            const factures = db.load('factures').filter(f => { const v = ventes.find(x=>x.id===f.venteId); return v && v.produitNom === produit; }).sort((a,b) => new Date(b.date)-new Date(a.date));
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const qteTotal = factures.reduce((s,f) => { const v = ventes.find(x=>x.id===f.venteId); return s+(v?v.quantite:0); }, 0);
+            const rows = factures.map(f => { const v = ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${f.client}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;">${v?formatMoney(v.prixUnitaire):'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport par Opération</div></div><div class="meta"><b>PRODUIT : ${produit}</b><br>${factures.length} vente(s) · ${qteTotal} unités</div></div><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="3" style="text-align:right;"><b>TOTAL ${qteTotal} unités</b></td><td style="text-align:center;"><b>${qteTotal}</b></td><td></td><td style="text-align:right;"><b>${formatMoney(total)}</b></td></tr></tbody></table>`);
+        }
+
+        // --- Impression toutes les factures par client ---
+        function printFacturesParClient() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const parClient = {};
+            factures.forEach(f => { if (!parClient[f.client]) parClient[f.client]={total:0,factures:[]}; parClient[f.client].total+=f.total; parClient[f.client].factures.push(f); });
+            const totalGlobal = factures.reduce((s,f)=>s+f.total,0);
+            const html = Object.entries(parClient).sort((a,b)=>b[1].total-a[1].total).map(([client,data]) => {
+                const rows = data.factures.map(f => { const v=ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+                return `<h2 style="margin:16px 0 8px;border-left:4px solid #f59e0b;padding-left:8px;">👤 ${client} — ${formatMoney(data.total)}</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Produit</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+            }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Agrégation par Client</div></div><div class="meta">Total général : ${formatMoney(totalGlobal)}</div></div>${html}`);
+        }
+
+        // --- Impression toutes les factures par jour ---
+        function printFacturesParJour() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const parJour = {};
+            factures.forEach(f => { const j=f.date.slice(0,10); if (!parJour[j]) parJour[j]={total:0,factures:[]}; parJour[j].total+=f.total; parJour[j].factures.push(f); });
+            const totalGlobal = factures.reduce((s,f)=>s+f.total,0);
+            const html = Object.entries(parJour).sort((a,b)=>b[0].localeCompare(a[0])).map(([jour,data]) => {
+                const dateLabel = new Date(jour).toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+                const rows = data.factures.map(f => { const v=ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;">${f.numero}</td><td>${f.client}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+                return `<h2 style="margin:16px 0 8px;border-left:4px solid #f59e0b;padding-left:8px;">📅 ${dateLabel} — ${formatMoney(data.total)}</h2><table><thead><tr><th>N° Facture</th><th>Client</th><th>Produit</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+            }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Agrégation par Jour</div></div><div class="meta">Total général : ${formatMoney(totalGlobal)}</div></div>${html}`);
+        }
+
+        // --- Impression toutes les factures par opération ---
+        function printFacturesParOperation() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const parOp = {};
+            factures.forEach(f => { const v=ventes.find(x=>x.id===f.venteId); const key=v?v.produitNom:'Produit inconnu'; if (!parOp[key]) parOp[key]={total:0,qte:0,factures:[],ventes:[]}; parOp[key].total+=f.total; parOp[key].factures.push(f); if(v){parOp[key].qte+=v.quantite;parOp[key].ventes.push(v);} });
+            const totalGlobal = factures.reduce((s,f)=>s+f.total,0);
+            const html = Object.entries(parOp).sort((a,b)=>b[1].total-a[1].total).map(([produit,data]) => {
+                const rows = data.factures.map((f,i) => { const v=data.ventes[i]; return `<tr><td style="font-family:monospace;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${f.client}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+                return `<h2 style="margin:16px 0 8px;border-left:4px solid #f59e0b;padding-left:8px;">🍺 ${produit} — ${data.qte} unités · ${formatMoney(data.total)}</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+            }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Agrégation par Opération</div></div><div class="meta">Total général : ${formatMoney(totalGlobal)}</div></div>${html}`);
         }
 
         async function deleteFacture(factureId) {
