@@ -233,7 +233,7 @@
                                 <span class="card-icon">📦</span>
                                 Gestion des Stocks
                             </div>
-                            <div class="flex gap-2" id="stock-actions"></div>
+                            <div class="flex gap-2" id="stock-actions"><button class="btn btn-outline" onclick="exportStock()"><span>🖨️</span> Imprimer Stock</button></div>
                         </div>
                         <div class="table-container">
                             <table class="table">
@@ -367,7 +367,7 @@
                                     <option value="modified">Prix modifiés</option>
                                 </select>
                                 <button class="btn btn-outline" onclick="exportVentes()">
-                                    <span>📤</span> Export
+                                    <span>🖨️</span> Imprimer
                                 </button>
                             </div>
                         </div>
@@ -540,7 +540,7 @@
                                     <option value="savings">Économies réalisées</option>
                                 </select>
                                 <button class="btn btn-outline" onclick="exportAchats()">
-                                    <span>📤</span> Export
+                                    <span>🖨️</span> Imprimer
                                 </button>
                             </div>
                         </div>
@@ -598,9 +598,12 @@
                                 <span class="card-icon">📄</span>
                                 Gestion des Factures
                             </div>
-                            <button class="btn btn-primary" onclick="generateInvoice()">
-                                <span>➕</span> Générer Facture
-                            </button>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline" onclick="printAllFactures()"><span>🖨️</span> Imprimer Tout</button>
+                                <button class="btn btn-primary" onclick="generateInvoice()">
+                                    <span>➕</span> Générer Facture
+                                </button>
+                            </div>
                         </div>
                         <div class="table-container">
                             <table class="table">
@@ -687,6 +690,7 @@
                                 <span class="card-icon">📋</span>
                                 Historique des Avaries
                             </div>
+                            <button class="btn btn-outline" onclick="exportAvaries()"><span>🖨️</span> Imprimer</button>
                         </div>
                         <div class="table-container">
                             <table class="table">
@@ -716,7 +720,7 @@
                                     <option value="avaries">Avaries</option>
                                 </select>
                                 <button class="btn btn-outline" onclick="exportTransactions()">
-                                    <span>📤</span> Export
+                                    <span>🖨️</span> Imprimer
                                 </button>
                             </div>
                         </div>
@@ -824,7 +828,7 @@
                                     <option value="volume-desc">Volume ↓</option>
                                 </select>
                                 <button class="btn btn-outline" onclick="exportMargins()">
-                                    <span>📊</span> Export
+                                    <span>🖨️</span> Imprimer
                                 </button>
                             </div>
                         </div>
@@ -1832,8 +1836,13 @@
                 }).join('');
         }
 
-        function exportVentes() {
-            showAlert('Export des ventes en cours de développement', 'info');
+        function exportVentes() { exportVentesImpl(); }
+        function exportVentesImpl() {
+            const ventes = db.load('ventes').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!ventes.length) { showAlert('Aucune vente à exporter', 'error'); return; }
+            const total = ventes.reduce((s,v) => s+v.total, 0);
+            const rows = ventes.map(v => `<tr><td>${formatDate(v.date)}</td><td>${v.produitNom}</td><td>${v.client}</td><td style="text-align:center;">${v.quantite}</td><td>${formatMoney(v.prixUnitaire)}</td><td><b>${formatMoney(v.total)}</b></td><td>${v.utilisateur}</td></tr>`).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Ventes</div></div><div class="meta">Total : ${ventes.length} ventes</div></div><h2>📋 Historique des Ventes</h2><table><thead><tr><th>Date</th><th>Produit</th><th>Client</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Vendeur</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr></tbody></table>`);
         }
 
         function viewVenteDetails(venteId) {
@@ -2418,7 +2427,11 @@
         }
 
         function exportAchats() {
-            showAlert('Export des achats en cours de développement', 'info');
+            const achats = db.load('achats').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!achats.length) { showAlert('Aucun achat à exporter', 'error'); return; }
+            const total = achats.reduce((s,a) => s+a.total, 0);
+            const rows = achats.map(a => `<tr><td>${formatDate(a.date)}</td><td>${a.produitNom}</td><td>${a.fournisseur||'N/A'}</td><td style="text-align:center;">${a.quantite}</td><td>${formatMoney(a.prixUnitaire)}</td><td><b>${formatMoney(a.total)}</b></td><td>${a.utilisateur}</td></tr>`).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Achats</div></div><div class="meta">Total : ${achats.length} achats</div></div><h2>🛒 Historique des Achats</h2><table><thead><tr><th>Date</th><th>Produit</th><th>Fournisseur</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Opérateur</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr></tbody></table>`);
         }
 
         function viewAchatDetails(achatId) {
@@ -2494,7 +2507,7 @@
                         <td style="color: var(--secondary); font-weight: bold;">${formatMoney(facture.total)}</td>
                         <td><span class="badge badge-warning">${facture.statut}</span></td>
                         <td>
-                            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;">👁️</button>
+                            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;" onclick="printFacture('${facture.id}')" title="Imprimer la facture">🖨️</button>
                             ${currentUser.permissions.canDelete ? 
                                 `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteFacture('${facture.id}')" title="Supprimer la facture">🗑️</button>` : 
                                 ''
@@ -3471,8 +3484,280 @@
             showAlert(`Facture ${numeroFacture} générée avec succès`);
         }
 
-        function exportData() { showAlert('Module export données opérationnel', 'success'); }
+        // ============================================================
+        //  FONCTIONS D'IMPRESSION ET D'EXPORT
+        // ============================================================
+
+        function printWindow(html) {
+            const win = window.open('', '_blank');
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: Arial, sans-serif; font-size: 12px; color: #000; background: #fff; padding: 20px; }
+                h1 { font-size: 20px; color: #f59e0b; margin-bottom: 4px; }
+                h2 { font-size: 15px; margin-bottom: 12px; color: #333; }
+                .header { border-bottom: 3px solid #f59e0b; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
+                .logo { font-size: 22px; font-weight: 900; color: #f59e0b; }
+                .meta { text-align: right; font-size: 11px; color: #666; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                th { background: #f59e0b; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; }
+                td { padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 11px; }
+                tr:nth-child(even) td { background: #fafafa; }
+                .total-row td { font-weight: bold; background: #fff8e7 !important; border-top: 2px solid #f59e0b; }
+                .badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+                .badge-green { background: #d1fae5; color: #065f46; }
+                .badge-orange { background: #fff3cd; color: #92400e; }
+                .badge-red { background: #fee2e2; color: #991b1b; }
+                .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+                .stat-box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; text-align: center; }
+                .stat-val { font-size: 16px; font-weight: 800; color: #f59e0b; }
+                .stat-lbl { font-size: 10px; color: #666; margin-top: 2px; }
+                .facture-box { border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; max-width: 600px; margin: 0 auto; }
+                .facture-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
+                .facture-total { display: flex; justify-content: space-between; padding: 10px 0; font-size: 16px; font-weight: bold; color: #f59e0b; border-top: 2px solid #f59e0b; margin-top: 8px; }
+                .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+                @media print { body { padding: 10px; } .no-print { display: none; } }
+            </style></head><body>${html}
+            <div class="footer">KSP BUSINESS PRO — Imprimé le ${new Date().toLocaleString('fr-FR')}</div>
+            <script>window.onload = function(){ window.print(); }<\/script>
+            </body></html>`);
+            win.document.close();
+        }
+
+        function printAllFactures() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!factures.length) { showAlert('Aucune facture à imprimer', 'error'); return; }
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const rows = factures.map(f => `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${f.client}</td><td><b>${formatMoney(f.total)}</b></td><td><span class="badge badge-orange">${f.statut}</span></td><td>${f.utilisateur}</td></tr>`).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Liste des Factures</div></div><div class="meta">${factures.length} factures — Total : ${formatMoney(total)}</div></div><h2>📄 Toutes les Factures</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Émis par</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="3"><b>TOTAL</b></td><td><b>${formatMoney(total)}</b></td><td colspan="2"></td></tr></tbody></table>`);
+        }
+
+        // --- Imprimer une facture individuelle ---
+        function printFacture(factureId) {
+            const factures = db.load('factures');
+            const ventes = db.load('ventes');
+            const f = factures.find(x => x.id === factureId);
+            if (!f) { showAlert('Facture introuvable', 'error'); return; }
+            const v = ventes.find(x => x.id === f.venteId);
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons</div></div>
+                    <div class="meta"><b>FACTURE ${f.numero}</b><br>Date : ${formatDate(f.date)}<br>Statut : ${f.statut}</div>
+                </div>
+                <div class="facture-box">
+                    <h2>Détails de la Facture</h2>
+                    <div class="facture-row"><span>N° Facture</span><b>${f.numero}</b></div>
+                    <div class="facture-row"><span>Client</span><b>${f.client}</b></div>
+                    <div class="facture-row"><span>Date</span><span>${formatDate(f.date)}</span></div>
+                    ${v ? `
+                    <div class="facture-row"><span>Produit</span><span>${v.produitNom}</span></div>
+                    <div class="facture-row"><span>Quantité</span><span>${v.quantite}</span></div>
+                    <div class="facture-row"><span>Prix unitaire</span><span>${formatMoney(v.prixUnitaire)}</span></div>` : ''}
+                    <div class="facture-total"><span>TOTAL</span><span>${formatMoney(f.total)}</span></div>
+                </div>
+                <p style="margin-top:16px;font-size:11px;color:#666;">Émis par : ${f.utilisateur}</p>
+            `);
+        }
+
+        // --- Export Ventes ---
+        function exportVentes() {
+            const ventes = db.load('ventes').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!ventes.length) { showAlert('Aucune vente à exporter', 'error'); return; }
+            const total = ventes.reduce((s,v) => s+v.total, 0);
+            const rows = ventes.map(v => `
+                <tr>
+                    <td>${formatDate(v.date)}</td>
+                    <td>${v.produitNom}</td>
+                    <td>${v.client}</td>
+                    <td style="text-align:center;">${v.quantite}</td>
+                    <td>${formatMoney(v.prixUnitaire)}</td>
+                    <td><b>${formatMoney(v.total)}</b></td>
+                    <td>${v.utilisateur}</td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Ventes</div></div>
+                    <div class="meta">Total : ${ventes.length} ventes<br>Période : toutes</div>
+                </div>
+                <h2>📋 Historique des Ventes</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Produit</th><th>Client</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Vendeur</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        // --- Export Achats ---
+        function exportAchats() {
+            const achats = db.load('achats').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!achats.length) { showAlert('Aucun achat à exporter', 'error'); return; }
+            const total = achats.reduce((s,a) => s+a.total, 0);
+            const rows = achats.map(a => `
+                <tr>
+                    <td>${formatDate(a.date)}</td>
+                    <td>${a.produitNom}</td>
+                    <td>${a.fournisseur || 'N/A'}</td>
+                    <td style="text-align:center;">${a.quantite}</td>
+                    <td>${formatMoney(a.prixUnitaire)}</td>
+                    <td><b>${formatMoney(a.total)}</b></td>
+                    <td>${a.utilisateur}</td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Achats</div></div>
+                    <div class="meta">Total : ${achats.length} achats<br>Période : toutes</div>
+                </div>
+                <h2>🛒 Historique des Achats</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Produit</th><th>Fournisseur</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Opérateur</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        // --- Export Transactions (Achats + Ventes combinés) ---
+        function exportTransactions() {
+            const ventes = db.load('ventes').map(v => ({...v, type: 'VENTE'}));
+            const achats = db.load('achats').map(a => ({...a, type: 'ACHAT'}));
+            const all = [...ventes, ...achats].sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!all.length) { showAlert('Aucune transaction à exporter', 'error'); return; }
+            const totalVentes = ventes.reduce((s,v) => s+v.total, 0);
+            const totalAchats = achats.reduce((s,a) => s+a.total, 0);
+            const rows = all.map(t => `
+                <tr>
+                    <td>${formatDate(t.date)}</td>
+                    <td><span class="badge ${t.type==='VENTE'?'badge-green':'badge-orange'}">${t.type}</span></td>
+                    <td>${t.produitNom}</td>
+                    <td>${t.type==='VENTE' ? (t.client||'') : (t.fournisseur||'')}</td>
+                    <td style="text-align:center;">${t.quantite}</td>
+                    <td><b>${formatMoney(t.total)}</b></td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Transactions</div></div>
+                    <div class="meta">${all.length} transactions au total</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val">${ventes.length}</div><div class="stat-lbl">Ventes</div></div>
+                    <div class="stat-box"><div class="stat-val">${achats.length}</div><div class="stat-lbl">Achats</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalVentes)}</div><div class="stat-lbl">CA Ventes</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalAchats)}</div><div class="stat-lbl">Total Achats</div></div>
+                </div>
+                <h2>📊 Toutes les Transactions</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Type</th><th>Produit</th><th>Client/Fournisseur</th><th>Qté</th><th>Montant</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`);
+        }
+
+        // --- Export Marges ---
+        function exportMargins() {
+            const ventes = db.load('ventes');
+            const totalVentes = ventes.reduce((s,v) => s+v.total, 0);
+            const totalCout = ventes.reduce((s,v) => { const p = produits.find(x=>x.id===v.produitId); return s+(p ? v.quantite*p.prixAchat : 0); }, 0);
+            const benefice = totalVentes - totalCout;
+            const margeGlobale = totalVentes > 0 ? ((benefice/totalVentes)*100).toFixed(1) : 0;
+            const rows = produits.map(p => {
+                const qte = ventes.filter(v=>v.produitId===p.id).reduce((s,v)=>s+v.quantite,0);
+                const mu = p.prixVente - p.prixAchat;
+                const pct = p.prixAchat > 0 ? ((mu/p.prixAchat)*100).toFixed(1) : 0;
+                const profit = qte * mu;
+                const perf = pct >= 50 ? '🏆 Excellente' : pct >= 25 ? '⭐ Bonne' : pct >= 10 ? '📈 Moyenne' : '⚠️ Faible';
+                return `<tr>
+                    <td>${p.nom} ${p.format}</td><td>${p.categorie}</td>
+                    <td>${formatMoney(p.prixAchat)}</td><td>${formatMoney(p.prixVente)}</td>
+                    <td><b>${formatMoney(mu)}</b></td><td><b>${pct}%</b></td>
+                    <td>${qte}</td><td>${formatMoney(profit)}</td><td>${perf}</td>
+                </tr>`;
+            }).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Analyse des Marges</div></div>
+                    <div class="meta">Marge globale : ${margeGlobale}%</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalVentes)}</div><div class="stat-lbl">CA Total</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalCout)}</div><div class="stat-lbl">Coût Total</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(benefice)}</div><div class="stat-lbl">Bénéfice Net</div></div>
+                    <div class="stat-box"><div class="stat-val">${margeGlobale}%</div><div class="stat-lbl">Marge Globale</div></div>
+                </div>
+                <h2>💰 Analyse par Produit</h2>
+                <table>
+                    <thead><tr><th>Produit</th><th>Catégorie</th><th>Prix Achat</th><th>Prix Vente</th><th>Marge/U</th><th>%</th><th>Qté Vendue</th><th>Profit</th><th>Performance</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`);
+        }
+
+        // --- Export Stock ---
+        function exportStock() {
+            const rows = produits.map(p => {
+                const status = p.stock <= 0 ? '<span class="badge badge-red">Rupture</span>' : p.stock <= 10 ? '<span class="badge badge-orange">Faible</span>' : '<span class="badge badge-green">OK</span>';
+                return `<tr>
+                    <td>${p.nom} ${p.format}</td><td>${p.categorie}</td>
+                    <td style="text-align:center;font-weight:bold;">${p.stock}</td>
+                    <td>${formatMoney(p.prixAchat)}</td><td>${formatMoney(p.prixVente)}</td>
+                    <td>${formatMoney(p.stock * p.prixAchat)}</td><td>${status}</td>
+                </tr>`;
+            }).join('');
+            const valeurTotale = produits.reduce((s,p)=>s+p.stock*p.prixAchat, 0);
+            const enRupture = produits.filter(p=>p.stock<=0).length;
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">État du Stock</div></div>
+                    <div class="meta">${produits.length} produits — Valeur : ${formatMoney(valeurTotale)}</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val">${produits.length}</div><div class="stat-lbl">Produits</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(valeurTotale)}</div><div class="stat-lbl">Valeur Stock</div></div>
+                    <div class="stat-box"><div class="stat-val">${enRupture}</div><div class="stat-lbl">En Rupture</div></div>
+                    <div class="stat-box"><div class="stat-val">${produits.filter(p=>p.stock>10).length}</div><div class="stat-lbl">Bien Stockés</div></div>
+                </div>
+                <h2>📦 État du Stock par Produit</h2>
+                <table>
+                    <thead><tr><th>Produit</th><th>Catégorie</th><th>Stock</th><th>Prix Achat</th><th>Prix Vente</th><th>Valeur Stock</th><th>Statut</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="5"><b>VALEUR TOTALE STOCK</b></td><td><b>${formatMoney(valeurTotale)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        // --- Export Avaries ---
+        function exportAvaries() {
+            const avaries = db.load('avaries').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!avaries.length) { showAlert('Aucune avarie à exporter', 'error'); return; }
+            const totalPerte = avaries.reduce((s,a) => s+(a.quantite*(a.prixAchat||0)), 0);
+            const rows = avaries.map(a => `
+                <tr>
+                    <td>${formatDate(a.date)}</td>
+                    <td>${a.produitNom}</td>
+                    <td style="text-align:center;">${a.quantite}</td>
+                    <td>${a.raison||'Non précisé'}</td>
+                    <td><b style="color:#dc2626;">${formatMoney(a.quantite*(a.prixAchat||0))}</b></td>
+                    <td>${a.utilisateur}</td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Avaries</div></div>
+                    <div class="meta">${avaries.length} avaries — Perte : ${formatMoney(totalPerte)}</div>
+                </div>
+                <h2>⚠️ Historique des Avaries</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Produit</th><th>Qté Perdue</th><th>Raison</th><th>Perte Estimée</th><th>Déclaré par</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="4"><b>TOTAL PERTES</b></td><td><b style="color:#dc2626;">${formatMoney(totalPerte)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        function exportData() { 
+            const choice = confirm('Cliquez OK pour imprimer le STOCK\nCliquez Annuler pour télécharger la sauvegarde JSON');
+            if (choice) exportStock(); else createManualBackup();
+        }
+
         function importData() { showAlert('Module import données opérationnel', 'success'); }
+
         function createManualBackup() { 
             const data = {
                 timestamp: new Date().toISOString(),
@@ -3492,8 +3777,6 @@
             showAlert('Export JSON téléchargé avec succès'); 
             if (currentPage === 'exportimport') renderExportImport(); 
         }
-        function exportTransactions() { showAlert('Export transactions opérationnel', 'success'); }
-        function exportMargins() { showAlert('Export analyse marges opérationnel', 'success'); }
         function addUser() { showAlert('Module ajout utilisateur opérationnel', 'success'); }
 
         // ============================================================
