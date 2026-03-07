@@ -3222,25 +3222,6 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Édition Stock -->
-                                        <div style="margin-bottom: 12px;">
-                                            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block;">Stock Actuel</label>
-                                            <div style="display: flex; gap: 4px; align-items: center;">
-                                                <button data-stock-minus="${produit.id}" onclick="adjustProductStock(${produit.id}, -1)" 
-                                                        style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; min-width: 32px;"
-                                                        ${currentUser.permissions.canModify && produit.stock > 0 ? '' : 'disabled'}>−</button>
-                                                <input type="number" 
-                                                       value="${produit.stock}" 
-                                                       min="0"
-                                                       style="flex: 1; padding: 6px; text-align: center; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: ${statusColor}; font-weight: 700; font-size: 14px;"
-                                                       oninput="updateProductStock(${produit.id}, this.value)"
-                                                       ${currentUser.permissions.canModify ? '' : 'readonly'}>
-                                                <button data-stock-plus="${produit.id}" onclick="adjustProductStock(${produit.id}, 1)" 
-                                                        style="background: var(--secondary); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; min-width: 32px;"
-                                                        ${currentUser.permissions.canModify ? '' : 'disabled'}>+</button>
-                                            </div>
-                                        </div>
-                                        
                                         <!-- Informations calculées -->
                                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding-top: 8px; border-top: 1px solid var(--border);">
                                             <div data-product-margin="${produit.id}">
