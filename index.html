@@ -233,7 +233,7 @@
                                 <span class="card-icon">📦</span>
                                 Gestion des Stocks
                             </div>
-                            <div class="flex gap-2" id="stock-actions"></div>
+                            <div class="flex gap-2" id="stock-actions"><button class="btn btn-outline" onclick="exportStock()"><span>🖨️</span> Imprimer Stock</button></div>
                         </div>
                         <div class="table-container">
                             <table class="table">
@@ -255,152 +255,141 @@
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="card-icon">📈</span>
-                                Nouvelle Vente - Interface Avancée
+                                Nouvelle Vente
                             </div>
                             <div class="flex gap-2">
-                                <button type="button" class="btn btn-outline" onclick="resetVenteForm()">
-                                    <span>🔄</span> Réinitialiser
-                                </button>
-                                <button type="button" class="btn" id="price-toggle-btn" onclick="togglePriceMode()" style="background: var(--danger);">
-                                    <span id="price-mode-icon">🔒</span>
-                                    <span id="price-mode-text">Déverrouiller Prix</span>
-                                </button>
+                                <button type="button" class="btn btn-outline" onclick="resetVenteForm()"><span>🔄</span> Réinitialiser</button>
+                                <button type="button" class="btn" id="price-toggle-btn" onclick="togglePriceMode()" style="background:var(--danger);"><span id="price-mode-icon">🔒</span> <span id="price-mode-text">Déverrouiller Prix</span></button>
                             </div>
                         </div>
-                        
-                        <form id="vente-form" class="form-grid">
+
+                        <!-- Champ Client (unique pour toute l'opération) -->
+                        <div style="padding:0 20px 16px;">
+                            <label class="form-label" style="font-weight:700;">👤 Client *</label>
+                            <input type="text" class="form-input" id="vente-client" placeholder="Nom du client" list="clients-list" style="max-width:320px;">
+                            <datalist id="clients-list"></datalist>
+                        </div>
+
+                        <!-- Formulaire ajout produit au panier -->
+                        <form id="vente-form" class="form-grid" style="padding:0 20px 16px;">
                             <div class="form-group">
                                 <label class="form-label">Produit</label>
-                                <select class="form-select" id="vente-produit" required>
+                                <select class="form-select" id="vente-produit">
                                     <option value="">🔍 Sélectionner un produit</option>
                                 </select>
                             </div>
-                            
                             <div class="form-group">
                                 <label class="form-label">Quantité</label>
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <button type="button" class="btn btn-outline" onclick="adjustQuantity(-1)" style="padding: 8px 12px; font-size: 16px;">➖</button>
-                                    <input type="number" class="form-input" id="vente-quantite" min="1" value="1" required style="text-align: center; font-weight: bold; font-size: 16px;">
-                                    <button type="button" class="btn btn-outline" onclick="adjustQuantity(1)" style="padding: 8px 12px; font-size: 16px;">➕</button>
+                                <div style="display:flex;gap:8px;align-items:center;">
+                                    <button type="button" class="btn btn-outline" onclick="adjustQuantity(-1)" style="padding:8px 12px;">➖</button>
+                                    <input type="number" class="form-input" id="vente-quantite" min="1" value="1" style="text-align:center;font-weight:bold;font-size:16px;">
+                                    <button type="button" class="btn btn-outline" onclick="adjustQuantity(1)" style="padding:8px 12px;">➕</button>
                                 </div>
                             </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Client</label>
-                                <input type="text" class="form-input" id="vente-client" required placeholder="Nom du client" list="clients-list">
-                                <datalist id="clients-list"></datalist>
-                            </div>
-                            
                             <div class="form-group">
                                 <label class="form-label">Prix Original</label>
-                                <input type="number" class="form-input" id="vente-prix-original" readonly style="background: var(--bg); color: var(--text-muted); font-weight: 500;">
+                                <input type="number" class="form-input" id="vente-prix-original" readonly style="background:var(--bg);color:var(--text-muted);">
                             </div>
-                            
                             <div class="form-group">
-                                <label class="form-label">
-                                    Prix de Vente
-                                    <span id="price-status" class="badge badge-danger" style="margin-left: 8px; font-size: 10px;">🔒 VERROUILLÉ</span>
-                                </label>
-                                <div style="position: relative;">
-                                    <input type="number" class="form-input" id="vente-prix" readonly style="font-weight: bold; font-size: 16px; color: var(--secondary);">
-                                    
-                                    <!-- Contrôles de modification de prix (masqués par défaut) -->
-                                    <div id="price-controls" style="display: none; margin-top: 12px;">
-                                        <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-100)" style="padding: 4px 8px; font-size: 11px;">-100</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-50)" style="padding: 4px 8px; font-size: 11px;">-50</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-25)" style="padding: 4px 8px; font-size: 11px;">-25</button>
-                                            <button type="button" class="btn btn-primary" onclick="resetPrice()" style="padding: 4px 8px; font-size: 11px;">Reset</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(25)" style="padding: 4px 8px; font-size: 11px;">+25</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(50)" style="padding: 4px 8px; font-size: 11px;">+50</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(100)" style="padding: 4px 8px; font-size: 11px;">+100</button>
+                                <label class="form-label">Prix de Vente <span id="price-status" class="badge badge-danger" style="margin-left:8px;font-size:10px;">🔒 VERROUILLÉ</span></label>
+                                <div style="position:relative;">
+                                    <input type="number" class="form-input" id="vente-prix" readonly style="font-weight:bold;font-size:16px;color:var(--secondary);">
+                                    <div id="price-controls" style="display:none;margin-top:12px;">
+                                        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-100)" style="padding:4px 8px;font-size:11px;">-100</button>
+                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-50)" style="padding:4px 8px;font-size:11px;">-50</button>
+                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-25)" style="padding:4px 8px;font-size:11px;">-25</button>
+                                            <button type="button" class="btn btn-primary" onclick="resetPrice()" style="padding:4px 8px;font-size:11px;">Reset</button>
+                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(25)" style="padding:4px 8px;font-size:11px;">+25</button>
+                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(50)" style="padding:4px 8px;font-size:11px;">+50</button>
+                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(100)" style="padding:4px 8px;font-size:11px;">+100</button>
                                         </div>
-                                        <input type="range" id="price-slider" min="50" max="200" step="5" value="100" style="width: 100%; margin-bottom: 8px;" oninput="updatePriceFromSlider()">
-                                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
-                                            <span>-50%</span><span>Prix Normal</span><span>+100%</span>
-                                        </div>
+                                        <input type="range" id="price-slider" min="50" max="200" step="5" value="100" style="width:100%;margin-bottom:8px;" oninput="updatePriceFromSlider()">
+                                        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);"><span>-50%</span><span>Prix Normal</span><span>+100%</span></div>
                                     </div>
                                 </div>
                             </div>
-                            
                             <div class="form-group">
-                                <label class="form-label">Total Final</label>
-                                <input type="text" class="form-input" id="vente-total" readonly style="font-weight: bold; font-size: 18px; color: var(--secondary); text-align: center;">
+                                <label class="form-label">Total</label>
+                                <input type="text" class="form-input" id="vente-total" readonly style="font-weight:bold;font-size:18px;color:var(--secondary);text-align:center;">
                             </div>
-                            
-                            <!-- Informations sur la modification de prix -->
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                <div id="price-change-info" style="display: none; padding: 16px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border);">
-                                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--primary);">📊 Analyse Modification Prix</div>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; font-size: 13px; margin-bottom: 12px;">
-                                        <div><strong>Prix Original:</strong> <span id="info-original" style="color: var(--info);">-</span></div>
-                                        <div><strong>Prix Modifié:</strong> <span id="info-modified" style="color: var(--secondary);">-</span></div>
-                                        <div><strong>Différence:</strong> <span id="info-difference" style="color: var(--primary);">-</span></div>
+                            <div class="form-group" style="grid-column:1/-1;display:none;" id="price-change-info-wrapper">
+                                <div id="price-change-info" style="padding:16px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+                                    <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--primary);">📊 Analyse Modification Prix</div>
+                                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;font-size:13px;margin-bottom:12px;">
+                                        <div><strong>Prix Original:</strong> <span id="info-original" style="color:var(--info);">-</span></div>
+                                        <div><strong>Prix Modifié:</strong> <span id="info-modified" style="color:var(--secondary);">-</span></div>
+                                        <div><strong>Différence:</strong> <span id="info-difference" style="color:var(--primary);">-</span></div>
                                         <div><strong>Impact Marge:</strong> <span id="info-margin">-</span></div>
                                     </div>
-                                    <div>
-                                        <label class="form-label">Raison de la modification (optionnel)</label>
-                                        <input type="text" class="form-input" id="price-reason" placeholder="Ex: Remise fidélité, négociation, promotion..." style="font-size: 12px;">
-                                    </div>
+                                    <div><label class="form-label">Raison modification (optionnel)</label><input type="text" class="form-input" id="price-reason" placeholder="Ex: Remise fidélité..." style="font-size:12px;"></div>
                                 </div>
                             </div>
-                            
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                <button type="submit" class="btn btn-secondary" style="padding: 15px 30px; font-size: 16px; font-weight: 600; width: 100%;">
-                                    <span>💾</span> Enregistrer la Vente
+                            <div class="form-group" style="grid-column:1/-1;">
+                                <button type="button" class="btn btn-primary" onclick="ajouterAuPanier()" style="padding:12px 24px;font-size:15px;font-weight:600;width:100%;">
+                                    <span>🛒</span> Ajouter au Panier
                                 </button>
                             </div>
                         </form>
+
+                        <!-- Panier -->
+                        <div id="panier-section" style="display:none;padding:0 20px 20px;">
+                            <div style="border:2px solid var(--primary);border-radius:10px;overflow:hidden;">
+                                <div style="background:var(--primary);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-weight:700;color:#fff;font-size:15px;">🛒 Panier — <span id="panier-client-label"></span></span>
+                                    <span style="color:#fff;font-weight:800;font-size:18px;" id="panier-total-label">0 FCFA</span>
+                                </div>
+                                <table class="table" style="margin:0;">
+                                    <thead><tr><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th><th></th></tr></thead>
+                                    <tbody id="panier-table"></tbody>
+                                </table>
+                                <div style="padding:16px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);">
+                                    <button class="btn btn-outline" onclick="viderPanier()">🗑️ Vider</button>
+                                    <button class="btn btn-secondary" onclick="finaliserVente()" style="padding:12px 24px;font-size:15px;font-weight:700;">
+                                        <span>💾</span> Finaliser la Vente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title">
-                                <span class="card-icon">📋</span>
-                                Historique des Ventes
-                            </div>
+                            <div class="card-title"><span class="card-icon">📋</span>Historique des Ventes</div>
                             <div class="flex gap-2">
-                                <select class="form-select" id="ventes-filter" style="width: auto;" onchange="filterVentes()">
+                                <select class="form-select" id="ventes-filter" style="width:auto;" onchange="filterVentes()">
                                     <option value="all">Toutes les ventes</option>
                                     <option value="today">Aujourd'hui</option>
                                     <option value="week">Cette semaine</option>
                                     <option value="modified">Prix modifiés</option>
                                 </select>
-                                <button class="btn btn-outline" onclick="exportVentes()">
-                                    <span>📤</span> Export
-                                </button>
+                                <button class="btn btn-outline" onclick="exportVentes()"><span>🖨️</span> Imprimer</button>
                             </div>
                         </div>
                         <div class="table-container">
                             <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Produit</th>
-                                        <th>Client</th>
-                                        <th>Qty</th>
-                                        <th>Prix</th>
-                                        <th>Total</th>
-                                        <th>Statut</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th>Date</th><th>Produit</th><th>Client</th><th>Qty</th><th>Prix</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
                                 <tbody id="ventes-table"></tbody>
                             </table>
                         </div>
                     </div>
-                    
-                    <!-- Statistiques Ventes Rapides -->
+
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title">
-                                <span class="card-icon">📊</span>
-                                Statistiques Ventes du Jour
+                            <div class="card-title"><span class="card-icon">📊</span>Statistiques Ventes du Jour</div>
+                        </div>
+                        <div class="stats-grid" id="ventes-stats-today"></div>
+                    </div>
+
+                    <!-- FACTURES DU JOUR PAR CLIENT -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><span class="card-icon">🧾</span>Factures du Jour — par Client</div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline" onclick="printFacturesJourTout()"><span>🖨️</span> Imprimer Tout le Jour</button>
                             </div>
                         </div>
-                        <div class="stats-grid" id="ventes-stats-today">
-                            <!-- Stats générées par JS -->
-                        </div>
+                        <div id="factures-jour-clients" style="padding:8px 0;"></div>
                     </div>
                 </div>
 
@@ -540,7 +529,7 @@
                                     <option value="savings">Économies réalisées</option>
                                 </select>
                                 <button class="btn btn-outline" onclick="exportAchats()">
-                                    <span>📤</span> Export
+                                    <span>🖨️</span> Imprimer
                                 </button>
                             </div>
                         </div>
@@ -592,23 +581,63 @@
 
                 <!-- Factures -->
                 <div id="page-factures" class="page">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="card-icon">📄</span>
-                                Gestion des Factures
+                    <!-- Onglets -->
+                    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                        <button id="tab-btn-liste" class="btn btn-primary" onclick="switchFactureTab('liste')" style="font-size:12px;">📋 Toutes les Factures</button>
+                        <button id="tab-btn-client" class="btn btn-outline" onclick="switchFactureTab('client')" style="font-size:12px;">👤 Par Client</button>
+                        <button id="tab-btn-jour" class="btn btn-outline" onclick="switchFactureTab('jour')" style="font-size:12px;">📅 Par Jour</button>
+                        <button id="tab-btn-operation" class="btn btn-outline" onclick="switchFactureTab('operation')" style="font-size:12px;">🔄 Par Opération</button>
+                    </div>
+
+                    <!-- Vue : Toutes les Factures -->
+                    <div id="tab-liste" class="facture-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">📄</span>Gestion des Factures</div>
+                                <div class="flex gap-2">
+                                    <button class="btn btn-outline" onclick="printAllFactures()"><span>🖨️</span> Imprimer Tout</button>
+                                    <button class="btn btn-primary" onclick="generateInvoice()"><span>➕</span> Générer Facture</button>
+                                </div>
                             </div>
-                            <button class="btn btn-primary" onclick="generateInvoice()">
-                                <span>➕</span> Générer Facture
-                            </button>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead><tr><th>Numéro</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead>
+                                    <tbody id="factures-table"></tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="table-container">
-                            <table class="table">
-                                <thead>
-                                    <tr><th>Numéro</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Actions</th></tr>
-                                </thead>
-                                <tbody id="factures-table"></tbody>
-                            </table>
+                    </div>
+
+                    <!-- Vue : Par Client -->
+                    <div id="tab-client" class="facture-tab" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">👤</span>Factures par Client</div>
+                                <button class="btn btn-outline" onclick="printFacturesParClient()"><span>🖨️</span> Imprimer</button>
+                            </div>
+                            <div id="factures-par-client"></div>
+                        </div>
+                    </div>
+
+                    <!-- Vue : Par Jour -->
+                    <div id="tab-jour" class="facture-tab" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">📅</span>Factures par Jour</div>
+                                <button class="btn btn-outline" onclick="printFacturesParJour()"><span>🖨️</span> Imprimer</button>
+                            </div>
+                            <div id="factures-par-jour"></div>
+                        </div>
+                    </div>
+
+                    <!-- Vue : Par Opération -->
+                    <div id="tab-operation" class="facture-tab" style="display:none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title"><span class="card-icon">🔄</span>Factures par Opération (Produit)</div>
+                                <button class="btn btn-outline" onclick="printFacturesParOperation()"><span>🖨️</span> Imprimer</button>
+                            </div>
+                            <div id="factures-par-operation"></div>
                         </div>
                     </div>
                 </div>
@@ -687,6 +716,7 @@
                                 <span class="card-icon">📋</span>
                                 Historique des Avaries
                             </div>
+                            <button class="btn btn-outline" onclick="exportAvaries()"><span>🖨️</span> Imprimer</button>
                         </div>
                         <div class="table-container">
                             <table class="table">
@@ -716,7 +746,7 @@
                                     <option value="avaries">Avaries</option>
                                 </select>
                                 <button class="btn btn-outline" onclick="exportTransactions()">
-                                    <span>📤</span> Export
+                                    <span>🖨️</span> Imprimer
                                 </button>
                             </div>
                         </div>
@@ -824,7 +854,7 @@
                                     <option value="volume-desc">Volume ↓</option>
                                 </select>
                                 <button class="btn btn-outline" onclick="exportMargins()">
-                                    <span>📊</span> Export
+                                    <span>🖨️</span> Imprimer
                                 </button>
                             </div>
                         </div>
@@ -1061,13 +1091,14 @@
                 this.cache[table] = this.cache[table].filter(r => r.produitId !== produitId);
             }
 
-            // Sauvegarde des configurations produits (prix + stocks) vers Supabase
+            // Sauvegarde des configurations produits (prix + stocks + stockMin) vers Supabase
             async saveProducts() {
                 const body = produits.map(p => ({
                     id: p.id,
                     prix_achat: p.prixAchat,
                     prix_vente: p.prixVente,
-                    stock: p.stock
+                    stock: p.stock,
+                    stock_min: p.stockMin
                 }));
                 try {
                     await sbFetch('POST', 'produits_config', body, '', { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
@@ -1086,10 +1117,48 @@
                             p.prixAchat = row.prix_achat || 0;
                             p.prixVente = row.prix_vente || 0;
                             p.stock = row.stock || 0;
+                            if (row.stock_min !== undefined && row.stock_min !== null) p.stockMin = row.stock_min;
                         }
                     });
                 } catch(e) {
                     console.error('Erreur loadProducts:', e);
+                }
+                // Charger les produits personnalisés
+                try {
+                    const customs = await sbFetch('GET', 'produits_custom', null, '');
+                    (customs || []).forEach(row => {
+                        if (!produits.find(p => p.id === row.id)) {
+                            produits.push({
+                                id: row.id,
+                                nom: row.nom,
+                                format: row.format,
+                                categorie: row.categorie,
+                                prixAchat: row.prix_achat || 0,
+                                prixVente: row.prix_vente || 0,
+                                stock: row.stock || 0,
+                                stockMin: row.stock_min || 0
+                            });
+                        }
+                    });
+                } catch(e) {
+                    console.error('Erreur loadProducts custom:', e);
+                }
+            }
+
+            async saveCustomProduct(p) {
+                const body = { id: p.id, nom: p.nom, format: p.format, categorie: p.categorie, prix_achat: p.prixAchat, prix_vente: p.prixVente, stock: p.stock, stock_min: p.stockMin };
+                try {
+                    await sbFetch('POST', 'produits_custom', body, '', { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+                } catch(e) {
+                    console.error('Erreur saveCustomProduct:', e);
+                }
+            }
+
+            async deleteCustomProduct(id) {
+                try {
+                    await sbFetch('DELETE', 'produits_custom', null, `?id=eq.${id}`);
+                } catch(e) {
+                    console.error('Erreur deleteCustomProduct:', e);
                 }
             }
 
@@ -1380,7 +1449,11 @@
             
             const actionsDiv = document.getElementById('stock-actions');
             if (currentUser.permissions.canCreate) {
-                actionsDiv.innerHTML = `<button class="btn btn-primary" onclick="showAlert('Module ajout produit disponible', 'info')"><span>➕</span> Ajouter</button>`;
+                actionsDiv.innerHTML = `
+                    <button class="btn btn-outline" onclick="exportStock()"><span>🖨️</span> Imprimer Stock</button>
+                    <button class="btn btn-primary" onclick="openAddProductModal()"><span>➕</span> Ajouter Produit</button>`;
+            } else {
+                actionsDiv.innerHTML = `<button class="btn btn-outline" onclick="exportStock()"><span>🖨️</span> Imprimer Stock</button>`;
             }
             
             const tbody = document.getElementById('stock-table');
@@ -1400,6 +1473,7 @@
                         <td><span class="badge badge-${statusBadge}">${statusText}</span></td>
                         <td>
                             ${currentUser.permissions.canModify ? `<button class="btn btn-outline" style="padding: 6px 10px; font-size: 11px; margin-right: 4px;" onclick="adjustStock(${p.id})">📝</button>` : ''}
+                            ${currentUser.permissions.canModify ? `<button class="btn btn-outline" style="padding: 6px 10px; font-size: 11px; margin-right: 4px;" onclick="editStockMin(${p.id})" title="Modifier stock minimum">⚠️</button>` : ''}
                             ${currentUser.permissions.canDelete ? `<button class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;" onclick="deleteProduct(${p.id})" title="Supprimer le produit">🗑️</button>` : ''}
                         </td>
                     </tr>
@@ -1445,6 +1519,7 @@
             renderVentesHistory();
             renderVentesStatsToday();
             updateClientsDatalist();
+            renderFacturesJourClients();
         }
 
         // Variables globales pour la gestion des prix
@@ -1588,85 +1663,137 @@
         }
 
         function resetVenteForm() {
-            document.getElementById('vente-form').reset();
+            document.getElementById('vente-produit').value = '';
             document.getElementById('vente-quantite').value = '1';
-            document.getElementById('price-reason').value = '';
-            isPriceModeUnlocked = true; // Pour que togglePriceMode le verrouille
+            document.getElementById('vente-client').value = '';
+            document.getElementById('vente-prix-original').value = '';
+            document.getElementById('vente-prix').value = '';
+            document.getElementById('vente-total').value = '';
+            if (document.getElementById('price-reason')) document.getElementById('price-reason').value = '';
+            panier = [];
+            document.getElementById('panier-section').style.display = 'none';
+            isPriceModeUnlocked = true;
             togglePriceMode();
             showAlert('Formulaire réinitialisé', 'info');
         }
 
-        async function handleVenteSubmit(event) {
-            event.preventDefault();
-            
+        // ============================================================
+        //  SYSTÈME PANIER - VENTE MULTI-PRODUITS
+        // ============================================================
+
+        let panier = []; // [{produitId, produitNom, quantite, prixUnitaire, prixOriginal, total, raisonModification}]
+
+        function ajouterAuPanier() {
+            const client = document.getElementById('vente-client').value.trim();
+            if (!client) { showAlert('Veuillez d\'abord saisir le nom du client', 'error'); return; }
+
             const produitId = parseInt(document.getElementById('vente-produit').value);
             const quantite = parseInt(document.getElementById('vente-quantite').value);
-            const client = document.getElementById('vente-client').value.trim();
             const prix = parseFloat(document.getElementById('vente-prix').value);
             const prixOriginal = parseFloat(document.getElementById('vente-prix-original').value);
-            const raisonModification = document.getElementById('price-reason').value.trim();
-            
-            if (!produitId || !quantite || !client) {
-                showAlert('Veuillez remplir tous les champs', 'error');
-                return;
-            }
-            
+            const raisonModification = document.getElementById('price-reason') ? document.getElementById('price-reason').value.trim() : '';
+
+            if (!produitId || !quantite || !prix) { showAlert('Veuillez sélectionner un produit et une quantité', 'error'); return; }
+
             const produit = produits.find(p => p.id === produitId);
-            if (!produit) {
-                showAlert('Produit introuvable', 'error');
-                return;
+            if (!produit) { showAlert('Produit introuvable', 'error'); return; }
+            if (quantite > produit.stock) { showAlert(`Stock insuffisant (disponible: ${produit.stock})`, 'warning'); return; }
+
+            // Vérifier si le produit est déjà dans le panier
+            const existing = panier.find(item => item.produitId === produitId);
+            if (existing) {
+                if (existing.quantite + quantite > produit.stock) { showAlert(`Stock insuffisant pour cette quantité totale`, 'warning'); return; }
+                existing.quantite += quantite;
+                existing.total = existing.quantite * existing.prixUnitaire;
+            } else {
+                panier.push({ produitId, produitNom: `${produit.nom} ${produit.format}`, quantite, prixUnitaire: prix, prixOriginal, prixModifie: prix !== prixOriginal, raisonModification, total: quantite * prix });
             }
-            
-            // Avertissement si stock insuffisant mais continuer la vente
-            let stockInsuffisant = false;
-            if (quantite > produit.stock) {
-                stockInsuffisant = true;
-            }
-            
-            // Créer l'objet vente avec informations de modification de prix
-            const vente = {
-                id: generateId(),
-                date: new Date().toISOString(),
-                produitId: produitId,
-                produitNom: `${produit.nom} ${produit.format}`,
-                quantite: quantite,
-                prixUnitaire: prix,
-                prixOriginal: prixOriginal,
-                prixModifie: prix !== prixOriginal,
-                raisonModification: raisonModification,
-                total: quantite * prix,
-                client: client,
-                utilisateur: currentUser.name,
-                statut: 'Confirmée'
-            };
-            
-            // Mettre à jour stock avant save
-            produit.stock -= quantite;
-            vente.stockApres = produit.stock;
+
+            renderPanier(client);
+            // Reset le formulaire produit uniquement (pas le client)
+            document.getElementById('vente-produit').value = '';
+            document.getElementById('vente-quantite').value = 1;
+            document.getElementById('vente-prix-original').value = '';
+            document.getElementById('vente-prix').value = '';
+            document.getElementById('vente-total').value = '';
+            if (document.getElementById('price-reason')) document.getElementById('price-reason').value = '';
+            showAlert(`✅ ${produit.nom} ${produit.format} ajouté au panier`, 'success');
+        }
+
+        function renderPanier(client) {
+            if (!client) client = document.getElementById('vente-client').value.trim();
+            const section = document.getElementById('panier-section');
+            if (panier.length === 0) { section.style.display = 'none'; return; }
+            section.style.display = 'block';
+            document.getElementById('panier-client-label').textContent = client;
+            const totalPanier = panier.reduce((s, i) => s + i.total, 0);
+            document.getElementById('panier-total-label').textContent = formatMoney(totalPanier);
+            document.getElementById('panier-table').innerHTML = panier.map((item, idx) => `
+                <tr>
+                    <td><div style="font-weight:600;">${item.produitNom}</div>${item.prixModifie ? `<div style="font-size:10px;color:var(--primary);">Prix modifié${item.raisonModification ? ' : ' + item.raisonModification : ''}</div>` : ''}</td>
+                    <td style="text-align:center;font-weight:bold;">${item.quantite}</td>
+                    <td style="text-align:right;">${formatMoney(item.prixUnitaire)}</td>
+                    <td style="text-align:right;font-weight:bold;color:var(--secondary);">${formatMoney(item.total)}</td>
+                    <td><button class="btn btn-danger" style="padding:3px 7px;font-size:11px;" onclick="retirerDuPanier(${idx})">✕</button></td>
+                </tr>`).join('');
+        }
+
+        function retirerDuPanier(idx) {
+            panier.splice(idx, 1);
+            renderPanier();
+        }
+
+        function viderPanier() {
+            panier = [];
+            document.getElementById('panier-section').style.display = 'none';
+        }
+
+        async function finaliserVente() {
+            const client = document.getElementById('vente-client').value.trim();
+            if (!client) { showAlert('Client manquant', 'error'); return; }
+            if (panier.length === 0) { showAlert('Panier vide', 'error'); return; }
+
+            const operationId = generateId(); // ID commun à tous les articles de cette vente
+            const date = new Date().toISOString();
 
             try {
-                await db.insert('ventes', vente);
+                for (const item of panier) {
+                    const produit = produits.find(p => p.id === item.produitId);
+                    produit.stock -= item.quantite;
+                    const vente = {
+                        id: generateId(),
+                        operationId,
+                        date,
+                        produitId: item.produitId,
+                        produitNom: item.produitNom,
+                        quantite: item.quantite,
+                        prixUnitaire: item.prixUnitaire,
+                        prixOriginal: item.prixOriginal,
+                        prixModifie: item.prixModifie,
+                        raisonModification: item.raisonModification,
+                        total: item.total,
+                        client,
+                        utilisateur: currentUser.name,
+                        statut: 'Confirmée'
+                    };
+                    await db.insert('ventes', vente);
+                }
                 await db.saveProducts();
+                showAlert(`✅ Vente finalisée ! ${panier.length} produit(s) — Total : ${formatMoney(panier.reduce((s,i)=>s+i.total,0))}`, 'success');
             } catch(e) {
                 showAlert('Erreur sauvegarde: ' + e.message, 'error');
-                produit.stock += quantite; // Rollback
                 return;
             }
-            
-            // Alerte avec informations détaillées
-            let alertMsg = `Vente enregistrée ! Stock restant: ${produit.stock}`;
-            if (stockInsuffisant) {
-                alertMsg += `\n⚠️ ATTENTION: Stock insuffisant au moment de la vente !`;
-            }
-            if (prix !== prixOriginal) {
-                const difference = prix - prixOriginal;
-                alertMsg += `\nPrix ${difference >= 0 ? 'augmenté' : 'réduit'} de ${formatMoney(Math.abs(difference))}`;
-            }
-            
-            // Reset et actualiser
+
+            panier = [];
             resetVenteForm();
             renderVentes();
-            showAlert(alertMsg, 'success');
+        }
+
+        // Garde la compatibilité avec l'ancien submit (au cas où)
+        async function handleVenteSubmit(event) {
+            if (event) event.preventDefault();
+            await ajouterAuPanier();
         }
 
         function renderVentesHistory() {
@@ -1698,6 +1825,7 @@
                             <td><span class="badge badge-success">✅ ${vente.statut}</span></td>
                             <td>
                                 <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;" onclick="viewVenteDetails('${vente.id}')">👁️</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture">🧾</button>
                                 ${currentUser.permissions.canDelete ? 
                                     `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteVente('${vente.id}')" title="Supprimer la vente">🗑️</button>` : 
                                     ''
@@ -1769,6 +1897,240 @@
             `;
         }
 
+        // ============================================================
+        //  FACTURES DU JOUR PAR CLIENT (opérations groupées)
+        // ============================================================
+
+        function getOperationsJour(dateStr) {
+            // dateStr = "YYYY-MM-DD" ou null pour aujourd'hui
+            const ventes = db.load('ventes');
+            const targetDate = dateStr || new Date().toDateString();
+
+            // Filtrer les ventes du jour
+            const ventesJour = ventes.filter(v => {
+                const d = dateStr
+                    ? v.date.slice(0, 10) === dateStr
+                    : new Date(v.date).toDateString() === targetDate;
+                return d;
+            });
+
+            // Regrouper par operationId (ou id si pas d'operationId = ancienne vente)
+            const opMap = {};
+            ventesJour.forEach(v => {
+                const key = v.operationId || v.id;
+                if (!opMap[key]) opMap[key] = { operationId: key, client: v.client, date: v.date, items: [], total: 0, utilisateur: v.utilisateur };
+                opMap[key].items.push(v);
+                opMap[key].total += v.total;
+            });
+
+            return Object.values(opMap).sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+
+        function renderFacturesJourClients() {
+            const div = document.getElementById('factures-jour-clients');
+            if (!div) return;
+
+            const operations = getOperationsJour(null);
+
+            if (operations.length === 0) {
+                div.innerHTML = '<p style="padding:20px;color:var(--text-muted);text-align:center;">Aucune vente enregistrée aujourd'hui</p>';
+                return;
+            }
+
+            // Regrouper les opérations par client
+            const parClient = {};
+            operations.forEach(op => {
+                if (!parClient[op.client]) parClient[op.client] = { operations: [], total: 0 };
+                parClient[op.client].operations.push(op);
+                parClient[op.client].total += op.total;
+            });
+
+            const dateLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const totalJour = operations.reduce((s, op) => s + op.total, 0);
+
+            div.innerHTML = `
+                <div style="padding:12px 20px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:13px;color:var(--text-muted);">📅 ${dateLabel}</span>
+                    <span style="font-weight:800;color:var(--secondary);font-size:16px;">Total jour : ${formatMoney(totalJour)}</span>
+                </div>
+                ${Object.entries(parClient).map(([client, data]) => `
+                    <div style="border-bottom:1px solid var(--border);padding:16px 20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <div style="font-weight:700;font-size:15px;color:var(--text-primary);">👤 ${client}</div>
+                            <div style="display:flex;gap:12px;align-items:center;">
+                                <span style="font-weight:800;color:var(--primary);font-size:15px;">${formatMoney(data.total)}</span>
+                                <button class="btn btn-outline" style="padding:5px 12px;font-size:12px;" onclick="printClientJour('${encodeURIComponent(client)}', null)">🖨️ Facture Client</button>
+                            </div>
+                        </div>
+                        ${data.operations.map((op, idx) => `
+                            <div style="background:var(--bg);border-radius:8px;margin-bottom:8px;overflow:hidden;border:1px solid var(--border);">
+                                <div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+                                    <span style="font-size:12px;color:var(--text-muted);">Opération #${idx + 1} — ${new Date(op.date).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})}</span>
+                                    <div style="display:flex;gap:8px;align-items:center;">
+                                        <span style="font-weight:700;color:var(--secondary);">${formatMoney(op.total)}</span>
+                                        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printOperationJour('${op.operationId}')">🧾 Imprimer</button>
+                                    </div>
+                                </div>
+                                <table class="table" style="margin:0;">
+                                    <thead><tr><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead>
+                                    <tbody>
+                                        ${op.items.map(item => `<tr>
+                                            <td>${item.produitNom}</td>
+                                            <td style="text-align:center;font-weight:bold;">${item.quantite}</td>
+                                            <td style="text-align:right;">${formatMoney(item.prixUnitaire)}</td>
+                                            <td style="text-align:right;font-weight:bold;color:var(--secondary);">${formatMoney(item.total)}</td>
+                                        </tr>`).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Imprimer la facture d'une seule opération (panier)
+        function printOperationJour(operationId) {
+            const ventes = db.load('ventes');
+            const items = ventes.filter(v => (v.operationId || v.id) === operationId);
+            if (!items.length) return;
+            const ref = items[0];
+            const total = items.reduce((s, v) => s + v.total, 0);
+            const num = 'F-' + operationId.slice(-8).toUpperCase();
+            const dateLabel = new Date(ref.date).toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
+
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons — Cotonou</div></div>
+                    <div class="meta"><b>FACTURE ${num}</b><br>${dateLabel}<br>Vendeur : ${ref.utilisateur}</div>
+                </div>
+                <div style="margin-bottom:16px;padding:12px;background:#f9f9f9;border-radius:6px;">
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Client</div>
+                    <div style="font-size:20px;font-weight:800;color:#222;">${ref.client}</div>
+                </div>
+                <table>
+                    <thead><tr><th>Produit</th><th style="text-align:center;">Quantité</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead>
+                    <tbody>
+                        ${items.map(v => `<tr>
+                            <td>${v.produitNom}</td>
+                            <td style="text-align:center;">${v.quantite}</td>
+                            <td style="text-align:right;">${formatMoney(v.prixUnitaire)}</td>
+                            <td style="text-align:right;font-weight:bold;">${formatMoney(v.total)}</td>
+                        </tr>`).join('')}
+                        <tr class="total-row">
+                            <td colspan="3" style="text-align:right;"><b>TOTAL À PAYER</b></td>
+                            <td style="text-align:right;font-size:18px;color:#f59e0b;"><b>${formatMoney(total)}</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="font-size:11px;color:#aaa;text-align:center;margin-top:20px;">Merci pour votre confiance — KSP Business Pro</p>
+            `);
+        }
+
+        // Imprimer toutes les opérations d'un client pour le jour donné
+        function printClientJour(clientEncoded, dateStr) {
+            const client = decodeURIComponent(clientEncoded);
+            const operations = getOperationsJour(dateStr).filter(op => op.client === client);
+            if (!operations.length) return;
+            const dateLabel = dateStr
+                ? new Date(dateStr).toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
+                : new Date().toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+            const totalClient = operations.reduce((s, op) => s + op.total, 0);
+
+            const opsHtml = operations.map((op, idx) => {
+                const lignes = op.items.map(v => `<tr>
+                    <td>${v.produitNom}</td>
+                    <td style="text-align:center;">${v.quantite}</td>
+                    <td style="text-align:right;">${formatMoney(v.prixUnitaire)}</td>
+                    <td style="text-align:right;font-weight:bold;">${formatMoney(v.total)}</td>
+                </tr>`).join('');
+                const sousTotal = op.items.reduce((s, v) => s + v.total, 0);
+                return `
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:12px;color:#888;margin-bottom:6px;">Opération #${idx + 1} — ${new Date(op.date).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</div>
+                        <table>
+                            <thead><tr><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead>
+                            <tbody>${lignes}
+                                <tr style="background:#f5f5f5;"><td colspan="3" style="text-align:right;font-style:italic;">Sous-total</td><td style="text-align:right;font-weight:bold;">${formatMoney(sousTotal)}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>`;
+            }).join('');
+
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons — Cotonou</div></div>
+                    <div class="meta"><b>RELEVÉ JOURNALIER</b><br>${dateLabel}</div>
+                </div>
+                <div style="margin-bottom:16px;padding:12px;background:#f9f9f9;border-radius:6px;">
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Client</div>
+                    <div style="font-size:20px;font-weight:800;color:#222;">${client}</div>
+                    <div style="font-size:12px;color:#555;margin-top:4px;">${operations.length} opération(s) ce jour</div>
+                </div>
+                ${opsHtml}
+                <table>
+                    <tbody>
+                        <tr class="total-row">
+                            <td style="text-align:right;"><b>TOTAL DU JOUR — ${client}</b></td>
+                            <td style="text-align:right;font-size:20px;color:#f59e0b;"><b>${formatMoney(totalClient)}</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="font-size:11px;color:#aaa;text-align:center;margin-top:20px;">Merci pour votre confiance — KSP Business Pro</p>
+            `);
+        }
+
+        // Imprimer toutes les factures du jour groupées par client
+        function printFacturesJourTout() {
+            const operations = getOperationsJour(null);
+            if (!operations.length) { showAlert('Aucune vente aujourd'hui', 'info'); return; }
+
+            const parClient = {};
+            operations.forEach(op => {
+                if (!parClient[op.client]) parClient[op.client] = { operations: [], total: 0 };
+                parClient[op.client].operations.push(op);
+                parClient[op.client].total += op.total;
+            });
+
+            const dateLabel = new Date().toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+            const totalJour = operations.reduce((s, op) => s + op.total, 0);
+
+            const clientsHtml = Object.entries(parClient).map(([client, data]) => {
+                const opsHtml = data.operations.map((op, idx) => {
+                    const lignes = op.items.map(v => `<tr>
+                        <td>${v.produitNom}</td>
+                        <td style="text-align:center;">${v.quantite}</td>
+                        <td style="text-align:right;">${formatMoney(v.prixUnitaire)}</td>
+                        <td style="text-align:right;font-weight:bold;">${formatMoney(v.total)}</td>
+                    </tr>`).join('');
+                    return `<div style="margin-bottom:10px;">
+                        <div style="font-size:11px;color:#888;margin-bottom:4px;">Opération #${idx + 1} — ${new Date(op.date).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})}</div>
+                        <table><thead><tr><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead>
+                        <tbody>${lignes}</tbody></table>
+                    </div>`;
+                }).join('');
+                return `
+                    <h2 style="margin:20px 0 8px;border-left:4px solid #f59e0b;padding-left:10px;font-size:15px;">👤 ${client} — ${formatMoney(data.total)}</h2>
+                    ${opsHtml}
+                    <div style="text-align:right;font-weight:bold;font-size:13px;color:#555;border-top:1px solid #ddd;padding-top:6px;margin-bottom:16px;">Sous-total ${client} : <span style="color:#f59e0b;">${formatMoney(data.total)}</span></div>`;
+            }).join('');
+
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons — Cotonou</div></div>
+                    <div class="meta"><b>RAPPORT JOURNALIER</b><br>${dateLabel}<br>${operations.length} opération(s) · ${Object.keys(parClient).length} client(s)</div>
+                </div>
+                ${clientsHtml}
+                <table><tbody>
+                    <tr class="total-row">
+                        <td style="text-align:right;"><b>TOTAL GÉNÉRAL DU JOUR</b></td>
+                        <td style="text-align:right;font-size:20px;color:#f59e0b;"><b>${formatMoney(totalJour)}</b></td>
+                    </tr>
+                </tbody></table>
+                <p style="font-size:11px;color:#aaa;text-align:center;margin-top:20px;">KSP Business Pro — Rapport généré le ${new Date().toLocaleString('fr-FR')}</p>
+            `);
+        }
+
         function updateClientsDatalist() {
             const ventes = db.load('ventes');
             const clients = [...new Set(ventes.map(v => v.client))].sort();
@@ -1826,14 +2188,20 @@
                             <td><span class="badge badge-success">✅ ${vente.statut}</span></td>
                             <td>
                                 <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="viewVenteDetails('${vente.id}')">👁️</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-left:4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture">🧾</button>
                             </td>
                         </tr>
                     `;
                 }).join('');
         }
 
-        function exportVentes() {
-            showAlert('Export des ventes en cours de développement', 'info');
+        function exportVentes() { exportVentesImpl(); }
+        function exportVentesImpl() {
+            const ventes = db.load('ventes').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!ventes.length) { showAlert('Aucune vente à exporter', 'error'); return; }
+            const total = ventes.reduce((s,v) => s+v.total, 0);
+            const rows = ventes.map(v => `<tr><td>${formatDate(v.date)}</td><td>${v.produitNom}</td><td>${v.client}</td><td style="text-align:center;">${v.quantite}</td><td>${formatMoney(v.prixUnitaire)}</td><td><b>${formatMoney(v.total)}</b></td><td>${v.utilisateur}</td></tr>`).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Ventes</div></div><div class="meta">Total : ${ventes.length} ventes</div></div><h2>📋 Historique des Ventes</h2><table><thead><tr><th>Date</th><th>Produit</th><th>Client</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Vendeur</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr></tbody></table>`);
         }
 
         function viewVenteDetails(venteId) {
@@ -2418,7 +2786,11 @@
         }
 
         function exportAchats() {
-            showAlert('Export des achats en cours de développement', 'info');
+            const achats = db.load('achats').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!achats.length) { showAlert('Aucun achat à exporter', 'error'); return; }
+            const total = achats.reduce((s,a) => s+a.total, 0);
+            const rows = achats.map(a => `<tr><td>${formatDate(a.date)}</td><td>${a.produitNom}</td><td>${a.fournisseur||'N/A'}</td><td style="text-align:center;">${a.quantite}</td><td>${formatMoney(a.prixUnitaire)}</td><td><b>${formatMoney(a.total)}</b></td><td>${a.utilisateur}</td></tr>`).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Achats</div></div><div class="meta">Total : ${achats.length} achats</div></div><h2>🛒 Historique des Achats</h2><table><thead><tr><th>Date</th><th>Produit</th><th>Fournisseur</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Opérateur</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr></tbody></table>`);
         }
 
         function viewAchatDetails(achatId) {
@@ -2479,29 +2851,229 @@
         }
 
 
-        // Autres fonctions de rendu...
+        // ============================================================
+        //  MODULE FACTURES - AGRÉGATION PAR CLIENT / JOUR / OPÉRATION
+        // ============================================================
+
+        let currentFactureTab = 'liste';
+
+        function switchFactureTab(tab) {
+            currentFactureTab = tab;
+            document.querySelectorAll('.facture-tab').forEach(el => el.style.display = 'none');
+            document.getElementById('tab-' + tab).style.display = 'block';
+            ['liste','client','jour','operation'].forEach(t => {
+                const btn = document.getElementById('tab-btn-' + t);
+                if (btn) { btn.className = t === tab ? 'btn btn-primary' : 'btn btn-outline'; btn.style.fontSize = '12px'; }
+            });
+            renderFactures();
+        }
+
         function renderFactures() {
             const factures = db.load('factures').sort((a, b) => new Date(b.date) - new Date(a.date));
+            const ventes = db.load('ventes');
+
+            // --- Vue liste ---
             const tbody = document.getElementById('factures-table');
-            
-            tbody.innerHTML = factures.length === 0 ? 
-                '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucune facture générée</td></tr>' :
-                factures.map(facture => `
-                    <tr>
-                        <td style="font-family: monospace; font-weight: bold;">${facture.numero}</td>
-                        <td style="font-size: 12px;">${formatDate(facture.date)}</td>
-                        <td>${facture.client}</td>
-                        <td style="color: var(--secondary); font-weight: bold;">${formatMoney(facture.total)}</td>
-                        <td><span class="badge badge-warning">${facture.statut}</span></td>
-                        <td>
-                            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;">👁️</button>
-                            ${currentUser.permissions.canDelete ? 
-                                `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteFacture('${facture.id}')" title="Supprimer la facture">🗑️</button>` : 
-                                ''
-                            }
-                        </td>
-                    </tr>
-                `).join('');
+            if (tbody) {
+                tbody.innerHTML = factures.length === 0 ?
+                    '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Aucune facture générée</td></tr>' :
+                    factures.map(facture => `
+                        <tr>
+                            <td style="font-family:monospace;font-weight:bold;">${facture.numero}</td>
+                            <td style="font-size:12px;">${formatDate(facture.date)}</td>
+                            <td>${facture.client}</td>
+                            <td style="color:var(--secondary);font-weight:bold;">${formatMoney(facture.total)}</td>
+                            <td><span class="badge badge-warning">${facture.statut}</span></td>
+                            <td>
+                                <button class="btn btn-outline" style="padding:4px 8px;font-size:11px;margin-right:4px;" onclick="printFacture('${facture.id}')" title="Imprimer">🖨️</button>
+                                ${currentUser.permissions.canDelete ? `<button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteFacture('${facture.id}')">🗑️</button>` : ''}
+                            </td>
+                        </tr>`).join('');
+            }
+
+            // --- Vue par client ---
+            const divClient = document.getElementById('factures-par-client');
+            if (divClient) {
+                const parClient = {};
+                factures.forEach(f => {
+                    if (!parClient[f.client]) parClient[f.client] = { total: 0, count: 0, factures: [] };
+                    parClient[f.client].total += f.total;
+                    parClient[f.client].count++;
+                    parClient[f.client].factures.push(f);
+                });
+                if (!Object.keys(parClient).length) { divClient.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Aucune facture</p>'; return; }
+                divClient.innerHTML = Object.entries(parClient).sort((a,b) => b[1].total - a[1].total).map(([client, data]) => `
+                    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+                        <div style="background:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+                            <div style="font-weight:700;color:var(--text-primary);">👤 ${client}</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <span style="font-size:12px;color:var(--text-muted);">${data.count} facture(s)</span>
+                                <span style="font-weight:800;color:var(--primary);font-size:16px;">${formatMoney(data.total)}</span>
+                                <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printClientFactures('${client}')">🖨️</button>
+                            </div>
+                        </div>
+                        <table class="table" style="margin:0;">
+                            <thead><tr><th>N° Facture</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead>
+                            <tbody>${data.factures.map(f => `
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:bold;">${f.numero}</td>
+                                    <td>${formatDate(f.date)}</td>
+                                    <td style="color:var(--secondary);font-weight:bold;">${formatMoney(f.total)}</td>
+                                    <td><span class="badge badge-warning">${f.statut}</span></td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`).join('');
+            }
+
+            // --- Vue par jour ---
+            const divJour = document.getElementById('factures-par-jour');
+            if (divJour) {
+                const parJour = {};
+                factures.forEach(f => {
+                    const jour = f.date.slice(0, 10);
+                    if (!parJour[jour]) parJour[jour] = { total: 0, count: 0, factures: [] };
+                    parJour[jour].total += f.total;
+                    parJour[jour].count++;
+                    parJour[jour].factures.push(f);
+                });
+                if (!Object.keys(parJour).length) { divJour.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Aucune facture</p>'; return; }
+                divJour.innerHTML = Object.entries(parJour).sort((a,b) => b[0].localeCompare(a[0])).map(([jour, data]) => `
+                    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+                        <div style="background:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+                            <div style="font-weight:700;color:var(--text-primary);">📅 ${new Date(jour).toLocaleDateString('fr-FR', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <span style="font-size:12px;color:var(--text-muted);">${data.count} facture(s)</span>
+                                <span style="font-weight:800;color:var(--primary);font-size:16px;">${formatMoney(data.total)}</span>
+                                <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printJourFactures('${jour}')">🖨️</button>
+                            </div>
+                        </div>
+                        <table class="table" style="margin:0;">
+                            <thead><tr><th>N° Facture</th><th>Client</th><th>Montant</th><th>Statut</th></tr></thead>
+                            <tbody>${data.factures.map(f => `
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:bold;">${f.numero}</td>
+                                    <td>${f.client}</td>
+                                    <td style="color:var(--secondary);font-weight:bold;">${formatMoney(f.total)}</td>
+                                    <td><span class="badge badge-warning">${f.statut}</span></td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`).join('');
+            }
+
+            // --- Vue par opération (produit vendu) ---
+            const divOp = document.getElementById('factures-par-operation');
+            if (divOp) {
+                const parOp = {};
+                factures.forEach(f => {
+                    const v = ventes.find(x => x.id === f.venteId);
+                    const key = v ? v.produitNom : 'Produit inconnu';
+                    if (!parOp[key]) parOp[key] = { total: 0, count: 0, qte: 0, factures: [], ventes: [] };
+                    parOp[key].total += f.total;
+                    parOp[key].count++;
+                    parOp[key].factures.push(f);
+                    if (v) { parOp[key].qte += v.quantite; parOp[key].ventes.push(v); }
+                });
+                if (!Object.keys(parOp).length) { divOp.innerHTML = '<p style="padding:20px;color:var(--text-muted);">Aucune facture</p>'; return; }
+                divOp.innerHTML = Object.entries(parOp).sort((a,b) => b[1].total - a[1].total).map(([produit, data]) => `
+                    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+                        <div style="background:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+                            <div style="font-weight:700;color:var(--text-primary);">🍺 ${produit}</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <span style="font-size:12px;color:var(--text-muted);">${data.count} vente(s) · ${data.qte} unités</span>
+                                <span style="font-weight:800;color:var(--primary);font-size:16px;">${formatMoney(data.total)}</span>
+                                <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printOperationFactures('${encodeURIComponent(produit)}')">🖨️</button>
+                            </div>
+                        </div>
+                        <table class="table" style="margin:0;">
+                            <thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Qté</th><th>Montant</th></tr></thead>
+                            <tbody>${data.factures.map((f,i) => {
+                                const v = data.ventes[i];
+                                return `<tr>
+                                    <td style="font-family:monospace;font-weight:bold;">${f.numero}</td>
+                                    <td>${formatDate(f.date)}</td>
+                                    <td>${f.client}</td>
+                                    <td style="text-align:center;">${v ? v.quantite : '-'}</td>
+                                    <td style="color:var(--secondary);font-weight:bold;">${formatMoney(f.total)}</td>
+                                </tr>`;}).join('')}
+                            </tbody>
+                        </table>
+                    </div>`).join('');
+            }
+        }
+
+        // --- Impression agrégée par client ---
+        function printClientFactures(client) {
+            const factures = db.load('factures').filter(f => f.client === client).sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const rows = factures.map(f => { const v = ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;">${v?formatMoney(v.prixUnitaire):'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Relevé de Factures</div></div><div class="meta"><b>CLIENT : ${client}</b><br>${factures.length} facture(s)</div></div><table><thead><tr><th>N° Facture</th><th>Date</th><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="5" style="text-align:right;"><b>TOTAL CLIENT ${client}</b></td><td style="text-align:right;"><b>${formatMoney(total)}</b></td></tr></tbody></table>`);
+        }
+
+        // --- Impression agrégée par jour ---
+        function printJourFactures(jour) {
+            const factures = db.load('factures').filter(f => f.date.slice(0,10) === jour).sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const dateLabel = new Date(jour).toLocaleDateString('fr-FR', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+            const rows = factures.map(f => { const v = ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${f.client}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport Journalier</div></div><div class="meta"><b>${dateLabel}</b><br>${factures.length} facture(s)</div></div><table><thead><tr><th>N° Facture</th><th>Client</th><th>Produit</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="4" style="text-align:right;"><b>TOTAL DU JOUR</b></td><td style="text-align:right;"><b>${formatMoney(total)}</b></td></tr></tbody></table>`);
+        }
+
+        // --- Impression agrégée par opération (produit) ---
+        function printOperationFactures(produitEncoded) {
+            const produit = decodeURIComponent(produitEncoded);
+            const ventes = db.load('ventes');
+            const factures = db.load('factures').filter(f => { const v = ventes.find(x=>x.id===f.venteId); return v && v.produitNom === produit; }).sort((a,b) => new Date(b.date)-new Date(a.date));
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const qteTotal = factures.reduce((s,f) => { const v = ventes.find(x=>x.id===f.venteId); return s+(v?v.quantite:0); }, 0);
+            const rows = factures.map(f => { const v = ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${f.client}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;">${v?formatMoney(v.prixUnitaire):'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport par Opération</div></div><div class="meta"><b>PRODUIT : ${produit}</b><br>${factures.length} vente(s) · ${qteTotal} unités</div></div><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="3" style="text-align:right;"><b>TOTAL ${qteTotal} unités</b></td><td style="text-align:center;"><b>${qteTotal}</b></td><td></td><td style="text-align:right;"><b>${formatMoney(total)}</b></td></tr></tbody></table>`);
+        }
+
+        // --- Impression toutes les factures par client ---
+        function printFacturesParClient() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const parClient = {};
+            factures.forEach(f => { if (!parClient[f.client]) parClient[f.client]={total:0,factures:[]}; parClient[f.client].total+=f.total; parClient[f.client].factures.push(f); });
+            const totalGlobal = factures.reduce((s,f)=>s+f.total,0);
+            const html = Object.entries(parClient).sort((a,b)=>b[1].total-a[1].total).map(([client,data]) => {
+                const rows = data.factures.map(f => { const v=ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+                return `<h2 style="margin:16px 0 8px;border-left:4px solid #f59e0b;padding-left:8px;">👤 ${client} — ${formatMoney(data.total)}</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Produit</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+            }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Agrégation par Client</div></div><div class="meta">Total général : ${formatMoney(totalGlobal)}</div></div>${html}`);
+        }
+
+        // --- Impression toutes les factures par jour ---
+        function printFacturesParJour() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const parJour = {};
+            factures.forEach(f => { const j=f.date.slice(0,10); if (!parJour[j]) parJour[j]={total:0,factures:[]}; parJour[j].total+=f.total; parJour[j].factures.push(f); });
+            const totalGlobal = factures.reduce((s,f)=>s+f.total,0);
+            const html = Object.entries(parJour).sort((a,b)=>b[0].localeCompare(a[0])).map(([jour,data]) => {
+                const dateLabel = new Date(jour).toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+                const rows = data.factures.map(f => { const v=ventes.find(x=>x.id===f.venteId); return `<tr><td style="font-family:monospace;">${f.numero}</td><td>${f.client}</td><td>${v?v.produitNom:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+                return `<h2 style="margin:16px 0 8px;border-left:4px solid #f59e0b;padding-left:8px;">📅 ${dateLabel} — ${formatMoney(data.total)}</h2><table><thead><tr><th>N° Facture</th><th>Client</th><th>Produit</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+            }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Agrégation par Jour</div></div><div class="meta">Total général : ${formatMoney(totalGlobal)}</div></div>${html}`);
+        }
+
+        // --- Impression toutes les factures par opération ---
+        function printFacturesParOperation() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            const ventes = db.load('ventes');
+            const parOp = {};
+            factures.forEach(f => { const v=ventes.find(x=>x.id===f.venteId); const key=v?v.produitNom:'Produit inconnu'; if (!parOp[key]) parOp[key]={total:0,qte:0,factures:[],ventes:[]}; parOp[key].total+=f.total; parOp[key].factures.push(f); if(v){parOp[key].qte+=v.quantite;parOp[key].ventes.push(v);} });
+            const totalGlobal = factures.reduce((s,f)=>s+f.total,0);
+            const html = Object.entries(parOp).sort((a,b)=>b[1].total-a[1].total).map(([produit,data]) => {
+                const rows = data.factures.map((f,i) => { const v=data.ventes[i]; return `<tr><td style="font-family:monospace;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${f.client}</td><td style="text-align:center;">${v?v.quantite:'-'}</td><td style="text-align:right;font-weight:bold;">${formatMoney(f.total)}</td></tr>`; }).join('');
+                return `<h2 style="margin:16px 0 8px;border-left:4px solid #f59e0b;padding-left:8px;">🍺 ${produit} — ${data.qte} unités · ${formatMoney(data.total)}</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th style="text-align:center;">Qté</th><th style="text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+            }).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Agrégation par Opération</div></div><div class="meta">Total général : ${formatMoney(totalGlobal)}</div></div>${html}`);
         }
 
         async function deleteFacture(factureId) {
@@ -3413,6 +3985,73 @@
             }
         }
 
+        // ============================================================
+        //  AJOUT PRODUIT & STOCK MINIMUM
+        // ============================================================
+
+        function openAddProductModal() {
+            if (!currentUser.permissions.canCreate) { showAlert('Accès refusé', 'error'); return; }
+            document.getElementById('new-prod-nom').value = '';
+            document.getElementById('new-prod-format').value = '';
+            document.getElementById('new-prod-achat').value = '';
+            document.getElementById('new-prod-vente').value = '';
+            document.getElementById('new-prod-stock').value = '0';
+            document.getElementById('new-prod-stockmin').value = '10';
+            const modal = document.getElementById('modal-add-product');
+            modal.style.display = 'flex';
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('modal-add-product').style.display = 'none';
+        }
+
+        async function confirmAddProduct() {
+            const nom = document.getElementById('new-prod-nom').value.trim();
+            const format = document.getElementById('new-prod-format').value.trim();
+            const categorie = document.getElementById('new-prod-categorie').value;
+            const prixAchat = parseInt(document.getElementById('new-prod-achat').value) || 0;
+            const prixVente = parseInt(document.getElementById('new-prod-vente').value) || 0;
+            const stock = parseInt(document.getElementById('new-prod-stock').value) || 0;
+            const stockMin = parseInt(document.getElementById('new-prod-stockmin').value) || 10;
+
+            if (!nom || !format) { showAlert('Nom et format sont obligatoires', 'error'); return; }
+
+            const maxId = produits.reduce((max, p) => Math.max(max, p.id), 0);
+            const newId = maxId + 1;
+
+            const newProduit = { id: newId, nom, format, categorie, prixAchat, prixVente, stock, stockMin };
+            produits.push(newProduit);
+
+            try {
+                await db.saveCustomProduct(newProduit);
+                await db.saveProducts();
+                showAlert(`✅ Produit "${nom} ${format}" ajouté avec succès !`, 'success');
+            } catch(e) {
+                showAlert('Erreur sauvegarde: ' + e.message, 'error');
+            }
+
+            closeAddProductModal();
+            if (currentPage === 'stock') renderStock();
+            else if (currentPage === 'produits') renderProduits();
+            generateNavigation();
+        }
+
+        function editStockMin(productId) {
+            if (!currentUser.permissions.canModify) { showAlert('Permissions insuffisantes', 'error'); return; }
+            const produit = produits.find(p => p.id === productId);
+            if (!produit) return;
+            const val = prompt(`Stock minimum pour "${produit.nom} ${produit.format}"\n\nValeur actuelle : ${produit.stockMin}\n\nNouveau stock minimum :`, produit.stockMin);
+            if (val === null) return;
+            const newMin = parseInt(val);
+            if (isNaN(newMin) || newMin < 0) { showAlert('Valeur invalide', 'error'); return; }
+            produit.stockMin = newMin;
+            db.saveProducts().catch(e => console.error('Error saving stockMin:', e));
+            showAlert(`Stock minimum mis à jour : ${produit.nom} ${produit.format} → ${newMin}`, 'success');
+            if (currentPage === 'stock') renderStock();
+            else if (currentPage === 'produits') renderProduits();
+            generateNavigation();
+        }
+
         async function deleteProduct(productId) {
             if (!currentUser.permissions.canDelete) {
                 showAlert('Accès refusé : permissions insuffisantes', 'error');
@@ -3427,6 +4066,8 @@
                     await db.deleteByProduit('ventes', productId);
                     await db.deleteByProduit('achats', productId);
                     await db.deleteByProduit('avaries', productId);
+                    // Supprimer aussi de produits_custom si c'est un produit ajouté
+                    if (productId > 55) await db.deleteCustomProduct(productId);
                 } catch(e) {
                     showAlert('Erreur suppression: ' + e.message, 'error');
                     return;
@@ -3471,8 +4112,341 @@
             showAlert(`Facture ${numeroFacture} générée avec succès`);
         }
 
-        function exportData() { showAlert('Module export données opérationnel', 'success'); }
+        // ============================================================
+        //  FONCTIONS D'IMPRESSION ET D'EXPORT
+        // ============================================================
+
+        function printWindow(html) {
+            const win = window.open('', '_blank');
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: Arial, sans-serif; font-size: 12px; color: #000; background: #fff; padding: 20px; }
+                h1 { font-size: 20px; color: #f59e0b; margin-bottom: 4px; }
+                h2 { font-size: 15px; margin-bottom: 12px; color: #333; }
+                .header { border-bottom: 3px solid #f59e0b; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
+                .logo { font-size: 22px; font-weight: 900; color: #f59e0b; }
+                .meta { text-align: right; font-size: 11px; color: #666; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                th { background: #f59e0b; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; }
+                td { padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 11px; }
+                tr:nth-child(even) td { background: #fafafa; }
+                .total-row td { font-weight: bold; background: #fff8e7 !important; border-top: 2px solid #f59e0b; }
+                .badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+                .badge-green { background: #d1fae5; color: #065f46; }
+                .badge-orange { background: #fff3cd; color: #92400e; }
+                .badge-red { background: #fee2e2; color: #991b1b; }
+                .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+                .stat-box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; text-align: center; }
+                .stat-val { font-size: 16px; font-weight: 800; color: #f59e0b; }
+                .stat-lbl { font-size: 10px; color: #666; margin-top: 2px; }
+                .facture-box { border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; max-width: 600px; margin: 0 auto; }
+                .facture-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
+                .facture-total { display: flex; justify-content: space-between; padding: 10px 0; font-size: 16px; font-weight: bold; color: #f59e0b; border-top: 2px solid #f59e0b; margin-top: 8px; }
+                .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+                @media print { body { padding: 10px; } .no-print { display: none; } }
+            </style></head><body>${html}
+            <div class="footer">KSP BUSINESS PRO — Imprimé le ${new Date().toLocaleString('fr-FR')}</div>
+            <script>window.onload = function(){ window.print(); }<\/script>
+            </body></html>`);
+            win.document.close();
+        }
+
+        function printAllFactures() {
+            const factures = db.load('factures').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!factures.length) { showAlert('Aucune facture à imprimer', 'error'); return; }
+            const total = factures.reduce((s,f) => s+f.total, 0);
+            const rows = factures.map(f => `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${f.client}</td><td><b>${formatMoney(f.total)}</b></td><td><span class="badge badge-orange">${f.statut}</span></td><td>${f.utilisateur}</td></tr>`).join('');
+            printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Liste des Factures</div></div><div class="meta">${factures.length} factures — Total : ${formatMoney(total)}</div></div><h2>📄 Toutes les Factures</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Émis par</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="3"><b>TOTAL</b></td><td><b>${formatMoney(total)}</b></td><td colspan="2"></td></tr></tbody></table>`);
+        }
+
+        // --- Imprimer facture depuis une vente (tous produits de la même opération) ---
+        function printVenteFacture(venteId) {
+            const toutesVentes = db.load('ventes');
+            const v = toutesVentes.find(x => x.id === venteId);
+            if (!v) { showAlert('Vente introuvable', 'error'); return; }
+
+            // Regrouper tous les articles de la même opération
+            const items = v.operationId
+                ? toutesVentes.filter(x => x.operationId === v.operationId)
+                : [v];
+
+            const numero = 'F-' + (v.operationId || v.id).slice(-8).toUpperCase();
+            const totalOp = items.reduce((s, i) => s + i.total, 0);
+
+            const lignes = items.map(i => `
+                <tr>
+                    <td>${i.produitNom}</td>
+                    <td style="text-align:center;">${i.quantite}</td>
+                    <td style="text-align:right;">${formatMoney(i.prixUnitaire)}</td>
+                    <td style="text-align:right;font-weight:bold;">${formatMoney(i.total)}</td>
+                </tr>`).join('');
+
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons</div></div>
+                    <div class="meta"><b>FACTURE ${numero}</b><br>Date : ${formatDate(v.date)}<br>Vendeur : ${v.utilisateur}</div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="font-weight:700;font-size:13px;">CLIENT</div>
+                    <div style="font-size:16px;font-weight:800;color:#333;">${v.client}</div>
+                </div>
+                <table>
+                    <thead><tr><th>Produit</th><th style="text-align:center;">Quantité</th><th style="text-align:right;">Prix Unitaire</th><th style="text-align:right;">Total</th></tr></thead>
+                    <tbody>
+                        ${lignes}
+                        <tr class="total-row">
+                            <td colspan="3" style="text-align:right;"><b>TOTAL À PAYER</b></td>
+                            <td style="text-align:right;font-size:16px;color:#f59e0b;"><b>${formatMoney(totalOp)}</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="font-size:11px;color:#999;text-align:center;margin-top:16px;">Merci pour votre achat !</p>
+            `);
+        }
+
+        // --- Imprimer une facture depuis le module Factures ---
+        function printFacture(factureId) {
+            const factures = db.load('factures');
+            const ventes = db.load('ventes');
+            const f = factures.find(x => x.id === factureId);
+            if (!f) { showAlert('Facture introuvable', 'error'); return; }
+            const v = ventes.find(x => x.id === f.venteId);
+            printWindow(`
+                <div class="header">
+                    <div>
+                        <div class="logo">🍺 KSP BUSINESS</div>
+                        <div style="font-size:11px;color:#666;">Dépôt de Boissons</div>
+                    </div>
+                    <div class="meta"><b>FACTURE ${f.numero}</b><br>Date : ${formatDate(f.date)}<br>Statut : ${f.statut}</div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="font-weight:700;font-size:13px;">CLIENT</div>
+                    <div style="font-size:14px;color:#333;">${f.client}</div>
+                </div>
+                ${v ? `
+                <table>
+                    <thead><tr><th>Produit</th><th style="text-align:center;">Quantité</th><th style="text-align:right;">Prix Unitaire</th><th style="text-align:right;">Total</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>${v.produitNom}</td>
+                            <td style="text-align:center;">${v.quantite}</td>
+                            <td style="text-align:right;">${formatMoney(v.prixUnitaire)}</td>
+                            <td style="text-align:right;font-weight:bold;">${formatMoney(v.total)}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="3" style="text-align:right;"><b>TOTAL À PAYER</b></td>
+                            <td style="text-align:right;font-size:15px;color:#f59e0b;"><b>${formatMoney(f.total)}</b></td>
+                        </tr>
+                    </tbody>
+                </table>` : `
+                <div class="facture-box">
+                    <div class="facture-total"><span>TOTAL</span><span>${formatMoney(f.total)}</span></div>
+                </div>`}
+                <p style="font-size:11px;color:#666;margin-top:8px;">Émis par : ${f.utilisateur}</p>
+                <p style="font-size:11px;color:#999;text-align:center;margin-top:12px;">Merci pour votre achat !</p>
+            `);
+        }
+
+        // --- Export Ventes ---
+        function exportVentes() {
+            const ventes = db.load('ventes').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!ventes.length) { showAlert('Aucune vente à exporter', 'error'); return; }
+            const total = ventes.reduce((s,v) => s+v.total, 0);
+            const rows = ventes.map(v => `
+                <tr>
+                    <td>${formatDate(v.date)}</td>
+                    <td>${v.produitNom}</td>
+                    <td>${v.client}</td>
+                    <td style="text-align:center;">${v.quantite}</td>
+                    <td>${formatMoney(v.prixUnitaire)}</td>
+                    <td><b>${formatMoney(v.total)}</b></td>
+                    <td>${v.utilisateur}</td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Ventes</div></div>
+                    <div class="meta">Total : ${ventes.length} ventes<br>Période : toutes</div>
+                </div>
+                <h2>📋 Historique des Ventes</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Produit</th><th>Client</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Vendeur</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        // --- Export Achats ---
+        function exportAchats() {
+            const achats = db.load('achats').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!achats.length) { showAlert('Aucun achat à exporter', 'error'); return; }
+            const total = achats.reduce((s,a) => s+a.total, 0);
+            const rows = achats.map(a => `
+                <tr>
+                    <td>${formatDate(a.date)}</td>
+                    <td>${a.produitNom}</td>
+                    <td>${a.fournisseur || 'N/A'}</td>
+                    <td style="text-align:center;">${a.quantite}</td>
+                    <td>${formatMoney(a.prixUnitaire)}</td>
+                    <td><b>${formatMoney(a.total)}</b></td>
+                    <td>${a.utilisateur}</td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Achats</div></div>
+                    <div class="meta">Total : ${achats.length} achats<br>Période : toutes</div>
+                </div>
+                <h2>🛒 Historique des Achats</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Produit</th><th>Fournisseur</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Opérateur</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="5"><b>TOTAL GÉNÉRAL</b></td><td><b>${formatMoney(total)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        // --- Export Transactions (Achats + Ventes combinés) ---
+        function exportTransactions() {
+            const ventes = db.load('ventes').map(v => ({...v, type: 'VENTE'}));
+            const achats = db.load('achats').map(a => ({...a, type: 'ACHAT'}));
+            const all = [...ventes, ...achats].sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!all.length) { showAlert('Aucune transaction à exporter', 'error'); return; }
+            const totalVentes = ventes.reduce((s,v) => s+v.total, 0);
+            const totalAchats = achats.reduce((s,a) => s+a.total, 0);
+            const rows = all.map(t => `
+                <tr>
+                    <td>${formatDate(t.date)}</td>
+                    <td><span class="badge ${t.type==='VENTE'?'badge-green':'badge-orange'}">${t.type}</span></td>
+                    <td>${t.produitNom}</td>
+                    <td>${t.type==='VENTE' ? (t.client||'') : (t.fournisseur||'')}</td>
+                    <td style="text-align:center;">${t.quantite}</td>
+                    <td><b>${formatMoney(t.total)}</b></td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Transactions</div></div>
+                    <div class="meta">${all.length} transactions au total</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val">${ventes.length}</div><div class="stat-lbl">Ventes</div></div>
+                    <div class="stat-box"><div class="stat-val">${achats.length}</div><div class="stat-lbl">Achats</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalVentes)}</div><div class="stat-lbl">CA Ventes</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalAchats)}</div><div class="stat-lbl">Total Achats</div></div>
+                </div>
+                <h2>📊 Toutes les Transactions</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Type</th><th>Produit</th><th>Client/Fournisseur</th><th>Qté</th><th>Montant</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`);
+        }
+
+        // --- Export Marges ---
+        function exportMargins() {
+            const ventes = db.load('ventes');
+            const totalVentes = ventes.reduce((s,v) => s+v.total, 0);
+            const totalCout = ventes.reduce((s,v) => { const p = produits.find(x=>x.id===v.produitId); return s+(p ? v.quantite*p.prixAchat : 0); }, 0);
+            const benefice = totalVentes - totalCout;
+            const margeGlobale = totalVentes > 0 ? ((benefice/totalVentes)*100).toFixed(1) : 0;
+            const rows = produits.map(p => {
+                const qte = ventes.filter(v=>v.produitId===p.id).reduce((s,v)=>s+v.quantite,0);
+                const mu = p.prixVente - p.prixAchat;
+                const pct = p.prixAchat > 0 ? ((mu/p.prixAchat)*100).toFixed(1) : 0;
+                const profit = qte * mu;
+                const perf = pct >= 50 ? '🏆 Excellente' : pct >= 25 ? '⭐ Bonne' : pct >= 10 ? '📈 Moyenne' : '⚠️ Faible';
+                return `<tr>
+                    <td>${p.nom} ${p.format}</td><td>${p.categorie}</td>
+                    <td>${formatMoney(p.prixAchat)}</td><td>${formatMoney(p.prixVente)}</td>
+                    <td><b>${formatMoney(mu)}</b></td><td><b>${pct}%</b></td>
+                    <td>${qte}</td><td>${formatMoney(profit)}</td><td>${perf}</td>
+                </tr>`;
+            }).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Analyse des Marges</div></div>
+                    <div class="meta">Marge globale : ${margeGlobale}%</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalVentes)}</div><div class="stat-lbl">CA Total</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(totalCout)}</div><div class="stat-lbl">Coût Total</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(benefice)}</div><div class="stat-lbl">Bénéfice Net</div></div>
+                    <div class="stat-box"><div class="stat-val">${margeGlobale}%</div><div class="stat-lbl">Marge Globale</div></div>
+                </div>
+                <h2>💰 Analyse par Produit</h2>
+                <table>
+                    <thead><tr><th>Produit</th><th>Catégorie</th><th>Prix Achat</th><th>Prix Vente</th><th>Marge/U</th><th>%</th><th>Qté Vendue</th><th>Profit</th><th>Performance</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`);
+        }
+
+        // --- Export Stock ---
+        function exportStock() {
+            const rows = produits.map(p => {
+                const status = p.stock <= 0 ? '<span class="badge badge-red">Rupture</span>' : p.stock <= 10 ? '<span class="badge badge-orange">Faible</span>' : '<span class="badge badge-green">OK</span>';
+                return `<tr>
+                    <td>${p.nom} ${p.format}</td><td>${p.categorie}</td>
+                    <td style="text-align:center;font-weight:bold;">${p.stock}</td>
+                    <td>${formatMoney(p.prixAchat)}</td><td>${formatMoney(p.prixVente)}</td>
+                    <td>${formatMoney(p.stock * p.prixAchat)}</td><td>${status}</td>
+                </tr>`;
+            }).join('');
+            const valeurTotale = produits.reduce((s,p)=>s+p.stock*p.prixAchat, 0);
+            const enRupture = produits.filter(p=>p.stock<=0).length;
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">État du Stock</div></div>
+                    <div class="meta">${produits.length} produits — Valeur : ${formatMoney(valeurTotale)}</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val">${produits.length}</div><div class="stat-lbl">Produits</div></div>
+                    <div class="stat-box"><div class="stat-val">${formatMoney(valeurTotale)}</div><div class="stat-lbl">Valeur Stock</div></div>
+                    <div class="stat-box"><div class="stat-val">${enRupture}</div><div class="stat-lbl">En Rupture</div></div>
+                    <div class="stat-box"><div class="stat-val">${produits.filter(p=>p.stock>10).length}</div><div class="stat-lbl">Bien Stockés</div></div>
+                </div>
+                <h2>📦 État du Stock par Produit</h2>
+                <table>
+                    <thead><tr><th>Produit</th><th>Catégorie</th><th>Stock</th><th>Prix Achat</th><th>Prix Vente</th><th>Valeur Stock</th><th>Statut</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="5"><b>VALEUR TOTALE STOCK</b></td><td><b>${formatMoney(valeurTotale)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        // --- Export Avaries ---
+        function exportAvaries() {
+            const avaries = db.load('avaries').sort((a,b) => new Date(b.date)-new Date(a.date));
+            if (!avaries.length) { showAlert('Aucune avarie à exporter', 'error'); return; }
+            const totalPerte = avaries.reduce((s,a) => s+(a.quantite*(a.prixAchat||0)), 0);
+            const rows = avaries.map(a => `
+                <tr>
+                    <td>${formatDate(a.date)}</td>
+                    <td>${a.produitNom}</td>
+                    <td style="text-align:center;">${a.quantite}</td>
+                    <td>${a.raison||'Non précisé'}</td>
+                    <td><b style="color:#dc2626;">${formatMoney(a.quantite*(a.prixAchat||0))}</b></td>
+                    <td>${a.utilisateur}</td>
+                </tr>`).join('');
+            printWindow(`
+                <div class="header">
+                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Rapport des Avaries</div></div>
+                    <div class="meta">${avaries.length} avaries — Perte : ${formatMoney(totalPerte)}</div>
+                </div>
+                <h2>⚠️ Historique des Avaries</h2>
+                <table>
+                    <thead><tr><th>Date</th><th>Produit</th><th>Qté Perdue</th><th>Raison</th><th>Perte Estimée</th><th>Déclaré par</th></tr></thead>
+                    <tbody>${rows}
+                    <tr class="total-row"><td colspan="4"><b>TOTAL PERTES</b></td><td><b style="color:#dc2626;">${formatMoney(totalPerte)}</b></td><td></td></tr>
+                    </tbody>
+                </table>`);
+        }
+
+        function exportData() { 
+            const choice = confirm('Cliquez OK pour imprimer le STOCK\nCliquez Annuler pour télécharger la sauvegarde JSON');
+            if (choice) exportStock(); else createManualBackup();
+        }
+
         function importData() { showAlert('Module import données opérationnel', 'success'); }
+
         function createManualBackup() { 
             const data = {
                 timestamp: new Date().toISOString(),
@@ -3492,8 +4466,6 @@
             showAlert('Export JSON téléchargé avec succès'); 
             if (currentPage === 'exportimport') renderExportImport(); 
         }
-        function exportTransactions() { showAlert('Export transactions opérationnel', 'success'); }
-        function exportMargins() { showAlert('Export analyse marges opérationnel', 'success'); }
         function addUser() { showAlert('Module ajout utilisateur opérationnel', 'success'); }
 
         // ============================================================
@@ -3527,10 +4499,55 @@
             initApp();
         });
 
-        // Animation pulse
-        const style = document.createElement('style');
-        style.textContent = `@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`;
-        document.head.appendChild(style);
-    </script>
+    <!-- Modal Ajout Produit -->
+    <div id="modal-add-product" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:1000;display:none;align-items:center;justify-content:center;">
+        <div style="background:var(--card);border-radius:12px;padding:28px;width:480px;max-width:95vw;border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="color:var(--text-primary);font-size:16px;">➕ Ajouter un Produit</h3>
+                <button onclick="closeAddProductModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label class="form-label">Nom du produit *</label>
+                    <input type="text" class="form-input" id="new-prod-nom" placeholder="Ex: Youki Orange">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Format *</label>
+                    <input type="text" class="form-input" id="new-prod-format" placeholder="Ex: 0.5L">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Catégorie *</label>
+                    <select class="form-select" id="new-prod-categorie">
+                        <option value="SOBEBRA">SOBEBRA</option>
+                        <option value="Lomé">Lomé</option>
+                        <option value="Nigéria PET">Nigéria PET</option>
+                        <option value="Eau minérale">Eau minérale</option>
+                        <option value="Autres produits">Autres produits</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Prix d'achat (FCFA)</label>
+                    <input type="number" class="form-input" id="new-prod-achat" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Prix de vente (FCFA)</label>
+                    <input type="number" class="form-input" id="new-prod-vente" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stock initial</label>
+                    <input type="number" class="form-input" id="new-prod-stock" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stock minimum</label>
+                    <input type="number" class="form-input" id="new-prod-stockmin" placeholder="10" min="0">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeAddProductModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="confirmAddProduct()"><span>💾</span> Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
