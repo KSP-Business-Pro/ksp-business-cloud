@@ -1123,7 +1123,7 @@
                 } catch(e) {
                     console.error('Erreur loadProducts:', e);
                 }
-                // Charger les produits personnalisés
+                // Charger les produits personnalisés (table peut ne pas exister encore)
                 try {
                     const customs = await sbFetch('GET', 'produits_custom', null, '');
                     (customs || []).forEach(row => {
@@ -1141,7 +1141,8 @@
                         }
                     });
                 } catch(e) {
-                    console.error('Erreur loadProducts custom:', e);
+                    // Table produits_custom absente = pas encore créée, ignorer
+                    console.warn('produits_custom non disponible:', e.message);
                 }
             }
 
@@ -1933,7 +1934,7 @@
             const operations = getOperationsJour(null);
 
             if (operations.length === 0) {
-                div.innerHTML = '<p style="padding:20px;color:var(--text-muted);text-align:center;">Aucune vente enregistrée aujourd'hui</p>';
+                div.innerHTML = "<p style='padding:20px;color:var(--text-muted);text-align:center;'>Aucune vente enregistrée aujourd'hui</p>";
                 return;
             }
 
@@ -2083,7 +2084,7 @@
         // Imprimer toutes les factures du jour groupées par client
         function printFacturesJourTout() {
             const operations = getOperationsJour(null);
-            if (!operations.length) { showAlert('Aucune vente aujourd'hui', 'info'); return; }
+            if (!operations.length) { showAlert("Aucune vente aujourd'hui", 'info'); return; }
 
             const parClient = {};
             operations.forEach(op => {
@@ -4478,16 +4479,15 @@
             try {
                 loadingMsg.textContent = '🔗 Connexion à Supabase...';
                 await db.loadAll();
-                
                 loadingMsg.textContent = '🍺 Chargement des produits...';
                 await db.loadProducts();
-                
                 loadingMsg.textContent = '✅ Prêt !';
-                setTimeout(() => overlay.style.display = 'none', 400);
-                
             } catch(e) {
-                loadingMsg.innerHTML = `<span style="color:#ef4444">❌ Erreur de connexion:<br>${e.message}</span>`;
                 console.error('Init error:', e);
+                loadingMsg.textContent = '⚠️ Mode hors-ligne';
+            } finally {
+                // Toujours cacher l'overlay, même en cas d'erreur
+                setTimeout(() => { overlay.style.display = 'none'; }, 500);
             }
         }
 
