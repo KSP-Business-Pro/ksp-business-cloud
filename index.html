@@ -888,24 +888,22 @@
                 <div id="page-users" class="page">
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title">
-                                <span class="card-icon">👥</span>
-                                Gestion des Utilisateurs
-                            </div>
-                            <button class="btn btn-primary" onclick="addUser()">
-                                <span>➕</span> Nouveau Utilisateur
-                            </button>
+                            <div class="card-title"><span class="card-icon">👥</span>Gestion des Utilisateurs</div>
                         </div>
-                        <div id="users-list" style="display: grid; gap: 16px;"></div>
+                        <div id="users-list" style="display:grid;gap:12px;"></div>
                     </div>
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-title">
-                                <span class="card-icon">🔒</span>
-                                Permissions & Rôles
-                            </div>
+                            <div class="card-title"><span class="card-icon">🔒</span>Permissions & Rôles</div>
                         </div>
-                        <div id="roles-overview" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;"></div>
+                        <div id="roles-overview" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><span class="card-icon">📋</span>Journal d'Audit — 50 dernières entrées</div>
+                            <button class="btn btn-outline" onclick="renderAuditLog()">🔄 Actualiser</button>
+                        </div>
+                        <div id="audit-log-list" class="table-container"></div>
                     </div>
                 </div>
             </div>
@@ -1248,55 +1246,300 @@
         }
 
         // Authentification
+        // ============================================================
+        //  SÉCURITÉ — Session, Audit, Offline, Mots de passe
+        // ============================================================
+
+        const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000;  // 8 heures
+        const SESSION_WARN_MS   = SESSION_TIMEOUT_MS - 10 * 60 * 1000; // alerte à 7h50
+        let sessionTimer = null;
+        let sessionWarnTimer = null;
+        let loginAttempts = {};  // brute-force protection
+
+        // ── Audit log ─────────────────────────────────────────────────
+        async function auditLog(action, details = '') {
+            try {
+                const entry = {
+                    id: generateId(),
+                    date: new Date().toISOString(),
+                    utilisateur: currentUser ? currentUser.username : 'anonyme',
+                    nom: currentUser ? currentUser.name : '-',
+                    action,
+                    details,
+                    ip: 'client'
+                };
+                await sbFetch('POST', 'audit_logs', entry, '', { 'Prefer': 'return=minimal' });
+            } catch(e) {
+                // Silencieux — ne pas bloquer l'app si audit échoue
+                console.warn('Audit log failed:', e.message);
+            }
+        }
+
+        // ── Offline / Connectivité ────────────────────────────────────
+        let offlineQueue = [];   // ventes/achats en attente de sync
+        let isOnline = navigator.onLine;
+
+        function updateConnectivityBanner() {
+            let banner = document.getElementById('connectivity-banner');
+            if (!banner) return;
+            if (isOnline) {
+                banner.style.display = 'none';
+            } else {
+                banner.style.display = 'flex';
+            }
+        }
+
+        async function syncOfflineQueue() {
+            if (!isOnline || offlineQueue.length === 0) return;
+            const queue = [...offlineQueue];
+            offlineQueue = [];
+            let synced = 0;
+            for (const item of queue) {
+                try {
+                    await sbFetch('POST', item.table, item.data, '', { 'Prefer': 'return=minimal' });
+                    synced++;
+                } catch(e) {
+                    offlineQueue.push(item); // remettre en file si échec
+                }
+            }
+            if (synced > 0) {
+                showAlert(`✅ ${synced} opération(s) synchronisée(s) après reconnexion`, 'success');
+                await db.saveProducts();
+            }
+            localStorage.setItem('ksp-offline-queue', JSON.stringify(offlineQueue));
+        }
+
+        function loadOfflineQueue() {
+            try {
+                const saved = localStorage.getItem('ksp-offline-queue');
+                if (saved) offlineQueue = JSON.parse(saved);
+            } catch(e) { offlineQueue = []; }
+        }
+
+        // Override db.insert pour gérer le mode hors-ligne
+        const _originalInsert = Database.prototype.insert;
+        Database.prototype.insert = async function(table, record) {
+            this.cache[table] = this.cache[table] || [];
+            this.cache[table].push(record);
+            if (!isOnline) {
+                offlineQueue.push({ table, data: { id: record.id, produit_id: record.produitId || null, data: record, created_at: new Date().toISOString() } });
+                localStorage.setItem('ksp-offline-queue', JSON.stringify(offlineQueue));
+                showAlert('⚠️ Hors-ligne : opération mise en file d\'attente', 'warning');
+                return;
+            }
+            const payload = { id: record.id, produit_id: record.produitId || null, data: record, created_at: new Date().toISOString() };
+            await sbFetch('POST', table, payload, '', { 'Prefer': 'return=minimal' });
+        };
+
+        window.addEventListener('online', async () => {
+            isOnline = true;
+            updateConnectivityBanner();
+            showAlert('🌐 Connexion rétablie — synchronisation en cours…', 'info');
+            await syncOfflineQueue();
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            updateConnectivityBanner();
+            showAlert('⚠️ Connexion Internet perdue — mode hors-ligne activé', 'warning');
+        });
+
+        // ── Sauvegarde automatique ─────────────────────────────────────
+        function checkAutoBackup() {
+            const lastBackup = localStorage.getItem('ksp-last-backup');
+            const now = Date.now();
+            if (!lastBackup || now - parseInt(lastBackup) > 24 * 60 * 60 * 1000) {
+                setTimeout(() => {
+                    if (currentUser && currentUser.role === 'admin') {
+                        showBackupReminder();
+                    }
+                }, 5000);
+            }
+        }
+
+        function showBackupReminder() {
+            const banner = document.getElementById('backup-reminder');
+            if (banner) banner.style.display = 'flex';
+        }
+
+        function dismissBackupReminder() {
+            const banner = document.getElementById('backup-reminder');
+            if (banner) banner.style.display = 'none';
+        }
+
+        function doAutoBackup() {
+            localStorage.setItem('ksp-last-backup', Date.now().toString());
+            dismissBackupReminder();
+            exportAllData();
+            auditLog('BACKUP', 'Sauvegarde manuelle déclenchée');
+        }
+
+        function exportAllData() {
+            const data = {
+                exportDate: new Date().toISOString(),
+                ventes: db.load('ventes'),
+                achats: db.load('achats'),
+                factures: db.load('factures'),
+                avaries: db.load('avaries'),
+                produits: produits.map(p => ({ id: p.id, prixAchat: p.prixAchat, prixVente: p.prixVente, stock: p.stock, stockMin: p.stockMin }))
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `KSP_Backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showAlert('✅ Sauvegarde téléchargée', 'success');
+        }
+
+        // ── Session timer ──────────────────────────────────────────────
+        function startSessionTimer() {
+            clearTimeout(sessionTimer);
+            clearTimeout(sessionWarnTimer);
+            sessionWarnTimer = setTimeout(() => {
+                showAlert('⏰ Votre session expire dans 10 minutes', 'warning');
+            }, SESSION_WARN_MS);
+            sessionTimer = setTimeout(() => {
+                showAlert('🔒 Session expirée — déconnexion automatique', 'error');
+                forceLogout();
+            }, SESSION_TIMEOUT_MS);
+        }
+
+        function resetSessionTimer() {
+            if (currentUser) startSessionTimer();
+        }
+
+        // Réinitialiser le timer à chaque interaction
+        document.addEventListener('click', resetSessionTimer, { passive: true });
+        document.addEventListener('keypress', resetSessionTimer, { passive: true });
+
+        function forceLogout() {
+            if (currentUser) auditLog('LOGOUT_AUTO', 'Session expirée après 8h');
+            currentUser = null;
+            clearTimeout(sessionTimer);
+            clearTimeout(sessionWarnTimer);
+            offlineQueue = [];
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('login-success').classList.add('hidden');
+        }
+
+        // ── Login avec protection brute-force ─────────────────────────
         function login(event) {
             event.preventDefault();
-            
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('login-error');
             const successDiv = document.getElementById('login-success');
-            
             errorDiv.classList.add('hidden');
             successDiv.classList.add('hidden');
-            
+
+            // Brute-force : bloquer après 5 tentatives pendant 5 minutes
+            const now = Date.now();
+            if (!loginAttempts[username]) loginAttempts[username] = { count: 0, blockedUntil: 0 };
+            const att = loginAttempts[username];
+            if (att.blockedUntil > now) {
+                const remaining = Math.ceil((att.blockedUntil - now) / 60000);
+                errorDiv.textContent = `⛔ Compte bloqué — réessayez dans ${remaining} min`;
+                errorDiv.classList.remove('hidden');
+                auditLog('LOGIN_BLOCKED', `Tentative bloquée : ${username}`);
+                return;
+            }
+
             if (users[username] && users[username].password === password) {
-                currentUser = users[username];
+                att.count = 0;
+                currentUser = { ...users[username] };
                 currentUser.username = username;
-                
+                currentUser.loginTime = new Date().toISOString();
                 successDiv.classList.remove('hidden');
-                
+                auditLog('LOGIN', `Connexion réussie depuis ${navigator.userAgent.slice(0,60)}`);
+                startSessionTimer();
+                loadOfflineQueue();
                 setTimeout(() => {
                     showApp();
-                    showAlert(`Bienvenue ${currentUser.name} ! Tous les modules sont déployés.`);
-                }, 1000);
+                    checkAutoBackup();
+                    if (offlineQueue.length > 0) {
+                        showAlert(`📶 ${offlineQueue.length} opération(s) en attente de sync`, 'warning');
+                    }
+                }, 800);
             } else {
+                att.count++;
+                if (att.count >= 5) {
+                    att.blockedUntil = now + 5 * 60 * 1000;
+                    errorDiv.textContent = '⛔ 5 tentatives échouées — compte bloqué 5 minutes';
+                    auditLog('LOGIN_FAIL_BLOCKED', `${username} — trop de tentatives`);
+                } else {
+                    errorDiv.textContent = `❌ Identifiants incorrects (${att.count}/5 tentative${att.count>1?'s':''})`;
+                    auditLog('LOGIN_FAIL', `Tentative ${att.count} : ${username}`);
+                }
                 errorDiv.classList.remove('hidden');
             }
         }
 
         function logout() {
             if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-                currentUser = null;
-                document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('app').classList.add('hidden');
-                
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-                document.getElementById('login-error').classList.add('hidden');
-                document.getElementById('login-success').classList.add('hidden');
+                auditLog('LOGOUT', 'Déconnexion manuelle');
+                forceLogout();
             }
         }
 
         function showApp() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
-            
             document.getElementById('user-avatar').textContent = currentUser.avatar;
             document.getElementById('user-name').textContent = currentUser.name;
             document.getElementById('user-role').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
-            
+            updateConnectivityBanner();
             generateNavigation();
             switchPage('dashboard');
+        }
+
+        // ── Changement de mot de passe ────────────────────────────────
+        function openChangePassword(username) {
+            document.getElementById('chpwd-username').value = username;
+            document.getElementById('chpwd-current').value = '';
+            document.getElementById('chpwd-new').value = '';
+            document.getElementById('chpwd-confirm').value = '';
+            document.getElementById('chpwd-error').textContent = '';
+            document.getElementById('modal-change-password').style.display = 'flex';
+        }
+
+        function closeChangePassword() {
+            document.getElementById('modal-change-password').style.display = 'none';
+        }
+
+        function confirmChangePassword() {
+            const username = document.getElementById('chpwd-username').value;
+            const current = document.getElementById('chpwd-current').value;
+            const newPwd = document.getElementById('chpwd-new').value;
+            const confirm = document.getElementById('chpwd-confirm').value;
+            const errEl = document.getElementById('chpwd-error');
+
+            if (!users[username] || users[username].password !== current) {
+                errEl.textContent = '❌ Mot de passe actuel incorrect'; return;
+            }
+            if (newPwd.length < 8) {
+                errEl.textContent = '❌ Le nouveau mot de passe doit contenir au moins 8 caractères'; return;
+            }
+            if (!/[A-Z]/.test(newPwd)) {
+                errEl.textContent = '❌ Le mot de passe doit contenir au moins une majuscule'; return;
+            }
+            if (!/[0-9@#$!%*?&]/.test(newPwd)) {
+                errEl.textContent = '❌ Le mot de passe doit contenir un chiffre ou caractère spécial'; return;
+            }
+            if (newPwd !== confirm) {
+                errEl.textContent = '❌ Les deux mots de passe ne correspondent pas'; return;
+            }
+
+            users[username].password = newPwd;
+            auditLog('PASSWORD_CHANGE', `Mot de passe changé pour : ${username}`);
+            closeChangePassword();
+            showAlert(`✅ Mot de passe de ${username} modifié avec succès`, 'success');
+            if (currentUser.role === 'admin') renderUsers();
         }
 
         function generateNavigation() {
@@ -3925,75 +4168,74 @@
                 showAlert('Accès refusé - Module administrateur', 'error');
                 return;
             }
-            
             const usersArray = Object.entries(users).map(([username, userData]) => ({
                 username, ...userData, isCurrentUser: username === currentUser.username
             }));
-            
-            document.getElementById('users-list').innerHTML = usersArray.map(user => {
-                const roleColors = { admin: 'var(--primary)', gestionnaire: 'var(--secondary)', operateur: 'var(--info)' };
-                const statusBadge = user.isCurrentUser ? 
-                    '<span class="badge badge-success">🟢 Connecté</span>' :
-                    '<span style="color: var(--text-muted); font-size: 11px;">⚪ Hors ligne</span>';
-                
-                return `
-                    <div style="display: flex; align-items: center; padding: 15px; background: var(--bg); border-radius: var(--border-radius); margin-bottom: 10px; border: 1px solid var(--border);">
-                        <div style="width: 40px; height: 40px; background: ${roleColors[user.role]}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; color: #000; font-size: 16px;">
-                            ${user.role === 'admin' ? '👑' : user.role === 'gestionnaire' ? '👩‍💼' : '👨‍💻'}
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: bold; margin-bottom: 4px;">${user.name} ${statusBadge}</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">👤 @${user.username} • 🔑 ${user.role.charAt(0).toUpperCase() + user.role.slice(1)} • 📱 ${user.modules.length} modules</div>
-                        </div>
-                        <div>${!user.isCurrentUser ? '<button class="btn btn-outline" style="padding: 6px 10px; font-size: 11px;" onclick="showAlert(\'Modification utilisateur disponible\')">✏️</button>' : '<span class="badge badge-success" style="padding: 6px 10px;">Votre compte</span>'}</div>
+            const roleColors = { admin: 'var(--primary)', gestionnaire: 'var(--secondary)', operateur: 'var(--info)' };
+
+            document.getElementById('users-list').innerHTML = usersArray.map(user => `
+                <div style="display:flex;align-items:center;padding:16px;background:var(--bg);border-radius:var(--border-radius);border:1px solid var(--border);gap:12px;">
+                    <div style="width:44px;height:44px;background:${roleColors[user.role]};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+                        ${user.role === 'admin' ? '👑' : user.role === 'gestionnaire' ? '👩‍💼' : '👨‍💻'}
                     </div>
-                `;
-            }).join('');
-            
+                    <div style="flex:1;">
+                        <div style="font-weight:bold;margin-bottom:3px;">${user.name}
+                            ${user.isCurrentUser ? '<span class="badge badge-success" style="margin-left:6px;">🟢 Connecté</span>' : ''}
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted);">@${user.username} · ${user.role} · ${user.modules.length} modules</div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">🔑 Mot de passe : ${'●'.repeat(8)}</div>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-shrink:0;">
+                        <button class="btn btn-outline" style="padding:6px 10px;font-size:11px;" onclick="openChangePassword('${user.username}')">🔑 Changer MDP</button>
+                        ${user.isCurrentUser ? `<span class="badge badge-success" style="padding:6px 10px;">Votre compte</span>` : ''}
+                    </div>
+                </div>`).join('');
+
+            // Journal audit récent
+            renderAuditLog();
+
             // Aperçu des rôles
             document.getElementById('roles-overview').innerHTML = `
-                <div style="padding: 16px; background: var(--bg); border-radius: var(--border-radius);">
-                    <div class="flex items-center gap-4" style="margin-bottom: 16px;">
-                        <span style="font-size: 20px;">👑</span>
-                        <div><div style="font-weight: 600; color: var(--primary);">Administrateur</div><div style="font-size: 11px; color: var(--text-muted);">Accès complet</div></div>
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
-                        <div>✅ 11 modules disponibles</div>
-                        <div>✅ Création, modification, suppression</div>
-                        <div>✅ Export des données</div>
-                        <div>✅ Gestion des utilisateurs</div>
-                        <div>✅ Statistiques avancées</div>
-                    </div>
+                <div style="padding:16px;background:var(--bg);border-radius:var(--border-radius);">
+                    <div class="flex items-center gap-4" style="margin-bottom:10px;"><span style="font-size:20px;">👑</span>
+                    <div><div style="font-weight:600;color:var(--primary);">Administrateur (GERANTE)</div><div style="font-size:11px;color:var(--text-muted);">Accès complet — 11 modules — Peut tout supprimer</div></div></div>
                 </div>
-                
-                <div style="padding: 16px; background: var(--bg); border-radius: var(--border-radius);">
-                    <div class="flex items-center gap-4" style="margin-bottom: 16px;">
-                        <span style="font-size: 20px;">👩‍💼</span>
-                        <div><div style="font-weight: 600; color: var(--secondary);">Gestionnaire</div><div style="font-size: 11px; color: var(--text-muted);">Accès limité</div></div>
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
-                        <div>✅ 6 modules disponibles</div>
-                        <div>✅ Consultation et saisie</div>
-                        <div>❌ Modification produits</div>
-                        <div>❌ Suppression données</div>
-                        <div>❌ Gestion utilisateurs</div>
-                    </div>
+                <div style="padding:16px;background:var(--bg);border-radius:var(--border-radius);">
+                    <div class="flex items-center gap-4" style="margin-bottom:10px;"><span style="font-size:20px;">👩‍💼</span>
+                    <div><div style="font-weight:600;color:var(--secondary);">Gestionnaire</div><div style="font-size:11px;color:var(--text-muted);">7 modules — Peut créer et modifier — Pas de suppression</div></div></div>
                 </div>
-                
-                <div style="padding: 16px; background: var(--bg); border-radius: var(--border-radius);">
-                    <div class="flex items-center gap-4" style="margin-bottom: 16px;">
-                        <span style="font-size: 20px;">👨‍💻</span>
-                        <div><div style="font-weight: 600; color: var(--info);">Opérateur</div><div style="font-size: 11px; color: var(--text-muted);">Accès opérationnel</div></div>
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
-                        <div>✅ 6 modules disponibles</div>
-                        <div>✅ Saisie des transactions</div>
-                        <div>✅ Consultation des données</div>
-                        <div>❌ Modifications système</div>
-                        <div>❌ Accès administration</div>
-                    </div>
-                </div>
-            `;
+                <div style="padding:16px;background:var(--bg);border-radius:var(--border-radius);">
+                    <div class="flex items-center gap-4" style="margin-bottom:10px;"><span style="font-size:20px;">👨‍💻</span>
+                    <div><div style="font-weight:600;color:var(--info);">Opérateur</div><div style="font-size:11px;color:var(--text-muted);">6 modules — Lecture seule — Pas de modification ni suppression</div></div></div>
+                </div>`;
+        }
+
+        async function renderAuditLog() {
+            const div = document.getElementById('audit-log-list');
+            if (!div) return;
+            div.innerHTML = '<p style="padding:12px;color:var(--text-muted);">Chargement…</p>';
+            try {
+                const rows = await sbFetch('GET', 'audit_logs', null, '?order=date.desc&limit=50');
+                if (!rows || rows.length === 0) {
+                    div.innerHTML = '<p style="padding:12px;color:var(--text-muted);">Aucune entrée dans le journal</p>';
+                    return;
+                }
+                const actionColors = {
+                    LOGIN: '#10b981', LOGOUT: '#64748b', LOGOUT_AUTO: '#f59e0b',
+                    LOGIN_FAIL: '#ef4444', LOGIN_FAIL_BLOCKED: '#ef4444', LOGIN_BLOCKED: '#ef4444',
+                    PASSWORD_CHANGE: '#6366f1', BACKUP: '#0ea5e9'
+                };
+                div.innerHTML = `<table class="table"><thead><tr><th>Date/Heure</th><th>Utilisateur</th><th>Action</th><th>Détails</th></tr></thead><tbody>
+                    ${rows.map(r => `<tr>
+                        <td style="font-size:11px;">${new Date(r.date).toLocaleString('fr-FR')}</td>
+                        <td><b>${r.utilisateur}</b><br><span style="font-size:10px;color:var(--text-muted);">${r.nom}</span></td>
+                        <td><span style="background:${actionColors[r.action]||'#64748b'};color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;">${r.action}</span></td>
+                        <td style="font-size:11px;color:var(--text-muted);">${(r.details||'').slice(0,80)}</td>
+                    </tr>`).join('')}
+                </tbody></table>`;
+            } catch(e) {
+                div.innerHTML = '<p style="padding:12px;color:var(--text-muted);">Journal non disponible (table audit_logs manquante)</p>';
+            }
         }
 
         // Fonctions utilitaires
@@ -4643,18 +4885,24 @@
         async function initApp() {
             const overlay = document.getElementById('loading-overlay');
             const loadingMsg = document.getElementById('loading-msg');
-            
+            isOnline = navigator.onLine;
             try {
-                loadingMsg.textContent = '🔗 Connexion à Supabase...';
-                await db.loadAll();
-                loadingMsg.textContent = '🍺 Chargement des produits...';
-                await db.loadProducts();
-                loadingMsg.textContent = '✅ Prêt !';
+                if (isOnline) {
+                    loadingMsg.textContent = '🔗 Connexion à Supabase...';
+                    await db.loadAll();
+                    loadingMsg.textContent = '🍺 Chargement des produits...';
+                    await db.loadProducts();
+                    loadingMsg.textContent = '✅ Prêt !';
+                } else {
+                    loadingMsg.textContent = '⚠️ Mode hors-ligne — données locales';
+                    await db.loadProducts().catch(() => {});
+                }
+                loadOfflineQueue();
             } catch(e) {
                 console.error('Init error:', e);
+                isOnline = false;
                 loadingMsg.textContent = '⚠️ Mode hors-ligne';
             } finally {
-                // Toujours cacher l'overlay, même en cas d'erreur
                 setTimeout(() => { overlay.style.display = 'none'; }, 500);
             }
         }
@@ -4667,6 +4915,61 @@
             initApp();
         });
     </script>
+
+    <!-- ── Bannière hors-ligne ────────────────────────────────── -->
+    <div id="connectivity-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#ef4444;color:#fff;padding:10px 20px;align-items:center;justify-content:center;gap:12px;font-weight:600;font-size:14px;">
+        <span>📡 HORS LIGNE — Les ventes sont mises en file d'attente et seront synchronisées à la reconnexion</span>
+        <span id="offline-queue-count" style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;font-size:12px;"></span>
+    </div>
+
+    <!-- ── Rappel sauvegarde ──────────────────────────────────── -->
+    <div id="backup-reminder" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9997;background:#0f172a;border:2px solid #f59e0b;border-radius:12px;padding:16px 20px;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="font-size:20px;">💾</span>
+            <div style="font-weight:700;color:#f59e0b;">Sauvegarde recommandée</div>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:12px;">Il s'est écoulé plus de 24h depuis la dernière sauvegarde. Téléchargez une copie de vos données.</div>
+        <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="doAutoBackup()" style="flex:1;padding:8px;">💾 Sauvegarder</button>
+            <button class="btn btn-outline" onclick="dismissBackupReminder()" style="padding:8px 12px;">Plus tard</button>
+        </div>
+    </div>
+
+    <!-- ── Modal Changement de Mot de Passe ──────────────────── -->
+    <div id="modal-change-password" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.65);z-index:10000;align-items:center;justify-content:center;">
+        <div style="background:var(--card);border-radius:14px;padding:28px;width:440px;max-width:95vw;border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="color:var(--text-primary);font-size:16px;">🔑 Changer le mot de passe</h3>
+                <button onclick="closeChangePassword()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;">✕</button>
+            </div>
+            <input type="hidden" id="chpwd-username">
+            <div style="display:grid;gap:14px;">
+                <div>
+                    <label class="form-label">Mot de passe actuel</label>
+                    <input type="password" class="form-input" id="chpwd-current" placeholder="Mot de passe actuel">
+                </div>
+                <div>
+                    <label class="form-label">Nouveau mot de passe</label>
+                    <input type="password" class="form-input" id="chpwd-new" placeholder="Min. 8 caractères, 1 majuscule, 1 chiffre ou @#$!">
+                </div>
+                <div>
+                    <label class="form-label">Confirmer le nouveau mot de passe</label>
+                    <input type="password" class="form-input" id="chpwd-confirm" placeholder="Répéter le nouveau mot de passe">
+                </div>
+                <div id="chpwd-error" style="color:var(--danger);font-size:13px;font-weight:500;min-height:18px;"></div>
+                <div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-muted);">
+                    <div style="font-weight:600;margin-bottom:4px;">Règles de sécurité :</div>
+                    <div>• Au moins 8 caractères</div>
+                    <div>• Au moins 1 lettre majuscule</div>
+                    <div>• Au moins 1 chiffre ou caractère spécial (@#$!%*?&)</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeChangePassword()">Annuler</button>
+                <button class="btn btn-primary" onclick="confirmChangePassword()">🔑 Confirmer</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Ajout Produit -->
     <div id="modal-add-product" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:1000;display:none;align-items:center;justify-content:center;">
