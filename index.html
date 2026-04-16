@@ -159,6 +159,8 @@
             .table th:nth-child(6), .table td:nth-child(6) { display: none; }
         }
     </style>
+    <!-- SheetJS pour export Excel (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -833,9 +835,10 @@
                                 <div class="form-group">
                                     <label class="form-label">Format</label>
                                     <select class="form-select" id="export-format">
+                                        <option value="xlsx">Excel (.xlsx)</option>
+                                        <option value="word">Word (.doc)</option>
                                         <option value="json">JSON</option>
-                                        <option value="csv">CSV</option>
-                                        <option value="backup">Backup KSP</option>
+                                        <option value="backup">Backup complet (JSON)</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -4943,89 +4946,133 @@
                 </table>`);
         }
 
+        // ── Helpers export ─────────────────────────────────────────
+        function _download(blob, name) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+            URL.revokeObjectURL(url);
+        }
+        function _ventesExcelRows() {
+            return db.load('ventes').map(v => ({
+                'Date': formatDate(v.date), 'Client': v.client, 'Produit': v.produitNom,
+                'Quantité': v.quantite, 'Prix Unitaire': v.prixUnitaire, 'Total (FCFA)': v.total,
+                'Prix Modifié': v.prixModifie ? 'Oui' : 'Non', 'Raison': v.raisonModification || '',
+                'Vendeur': v.utilisateur, 'Statut': v.statut
+            }));
+        }
+        function _achatsExcelRows() {
+            return db.load('achats').map(a => ({
+                'Date': formatDate(a.date), 'Produit': a.produitNom,
+                'Fournisseur': a.fournisseur || '', 'Quantité': a.quantite,
+                'Prix Unitaire': a.prixUnitaire, 'Total (FCFA)': a.total, 'Opérateur': a.utilisateur
+            }));
+        }
+        function _facturesExcelRows() {
+            return db.load('factures').map(f => ({
+                'N° Facture': f.numero, 'Date': formatDate(f.date), 'Client': f.client,
+                'Montant (FCFA)': f.total, 'Statut': f.statut, 'Émis par': f.utilisateur
+            }));
+        }
+        function _avariesExcelRows() {
+            return db.load('avaries').map(a => ({
+                'Date': formatDate(a.date), 'Produit': a.produitNom, 'Quantité': a.quantite,
+                'Type': a.type, 'Valeur Perte': a.valeurPerte || 0,
+                'Description': a.description || '', 'Opérateur': a.utilisateur
+            }));
+        }
+        function _produitsExcelRows() {
+            return produits.map(p => ({
+                'ID': p.id, 'Nom': p.nom, 'Format': p.format, 'Catégorie': p.categorie,
+                'Prix Achat (FCFA)': p.prixAchat, 'Prix Vente (FCFA)': p.prixVente,
+                'Marge (FCFA)': p.prixVente - p.prixAchat,
+                'Marge (%)': p.prixAchat > 0 ? ((p.prixVente-p.prixAchat)/p.prixAchat*100).toFixed(1)+'%' : '-',
+                'Stock': p.stock, 'Stock Min': p.stockMin,
+                'Statut': p.stock===0 ? 'ÉPUISÉ' : p.stock<=p.stockMin ? 'FAIBLE' : 'Normal'
+            }));
+        }
+        function _getExcelRows(type) {
+            if (type==='ventes')   return _ventesExcelRows();
+            if (type==='achats')   return _achatsExcelRows();
+            if (type==='factures') return _facturesExcelRows();
+            if (type==='avaries')  return _avariesExcelRows();
+            if (type==='produits') return _produitsExcelRows();
+            return [];
+        }
+
         function exportData() {
-            const type = document.getElementById('export-type').value;
+            const type   = document.getElementById('export-type').value;
             const format = document.getElementById('export-format').value;
+            const date   = new Date().toISOString().slice(0, 10);
+            const labels = { ventes:'Ventes', achats:'Achats', factures:'Factures',
+                avaries:'Avaries', produits:'Produits', all:'Backup_Complet' };
+            const filename = 'KSP_' + (labels[type]||'Export') + '_' + date;
 
-            // Construire les données selon le type choisi
-            let data = {};
-            let filename = '';
+            if (format === 'xlsx') {
+                if (!window.XLSX) { showAlert('Librairie Excel non chargée, réessayez', 'error'); return; }
+                const wb = window.XLSX.utils.book_new();
+                if (type === 'all') {
+                    [['Ventes',_ventesExcelRows()],['Achats',_achatsExcelRows()],
+                     ['Factures',_facturesExcelRows()],['Avaries',_avariesExcelRows()],
+                     ['Produits',_produitsExcelRows()]].forEach(([name, rows]) => {
+                        const ws = window.XLSX.utils.json_to_sheet(rows);
+                        const r = window.XLSX.utils.decode_range(ws['!ref']||'A1');
+                        const cols = [];
+                        for (let C=r.s.c; C<=r.e.c; C++) {
+                            let w=10;
+                            for (let R=r.s.r; R<=r.e.r; R++) {
+                                const cell = ws[window.XLSX.utils.encode_cell({r:R,c:C})];
+                                if (cell&&cell.v) w=Math.max(w, String(cell.v).length+2);
+                            }
+                            cols.push({wch: Math.min(w,40)});
+                        }
+                        ws['!cols'] = cols;
+                        window.XLSX.utils.book_append_sheet(wb, ws, name);
+                    });
+                } else {
+                    const rows = _getExcelRows(type);
+                    const ws = window.XLSX.utils.json_to_sheet(rows);
+                    window.XLSX.utils.book_append_sheet(wb, ws, labels[type]||type);
+                }
+                window.XLSX.writeFile(wb, filename + '.xlsx');
+                showAlert('✅ Export Excel (' + filename + '.xlsx) téléchargé', 'success');
 
-            switch(type) {
-                case 'ventes':
-                    data = db.load('ventes');
-                    filename = 'KSP_Ventes';
-                    break;
-                case 'achats':
-                    data = db.load('achats');
-                    filename = 'KSP_Achats';
-                    break;
-                case 'factures':
-                    data = db.load('factures');
-                    filename = 'KSP_Factures';
-                    break;
-                case 'avaries':
-                    data = db.load('avaries');
-                    filename = 'KSP_Avaries';
-                    break;
-                case 'produits':
-                    data = produits.map(p => ({
-                        id: p.id, nom: p.nom, format: p.format, categorie: p.categorie,
-                        prixAchat: p.prixAchat, prixVente: p.prixVente,
-                        stock: p.stock, stockMin: p.stockMin
-                    }));
-                    filename = 'KSP_Produits';
-                    break;
-                default: // all / backup
-                    data = {
-                        exportDate: new Date().toISOString(),
-                        ventes: db.load('ventes'),
-                        achats: db.load('achats'),
-                        factures: db.load('factures'),
-                        avaries: db.load('avaries'),
-                        produits: produits.map(p => ({
-                            id: p.id, nom: p.nom, format: p.format, categorie: p.categorie,
-                            prixAchat: p.prixAchat, prixVente: p.prixVente,
-                            stock: p.stock, stockMin: p.stockMin
-                        }))
-                    };
-                    filename = 'KSP_Backup_Complet';
+            } else if (format === 'word') {
+                const title = ({ventes:'Rapport des Ventes', achats:'Rapport des Achats',
+                    factures:'Rapport des Factures', avaries:'Rapport des Avaries',
+                    produits:'Catalogue Produits', all:'Rapport Complet KSP Business'})[type]||'Rapport';
+                const dateLabel = new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+                const makeTable = (rows) => {
+                    if (!rows||!rows.length) return '<p style="color:#888;">Aucune donnée</p>';
+                    const hdrs = Object.keys(rows[0]);
+                    return '<table><thead><tr>'+hdrs.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+
+                        rows.map(r=>'<tr>'+hdrs.map(h=>'<td>'+(r[h]!==undefined?r[h]:'')+'</td>').join('')+'</tr>').join('')+
+                        '</tbody></table>';
+                };
+                const body = type==='all'
+                    ? [['Ventes',_ventesExcelRows()],['Achats',_achatsExcelRows()],['Factures',_facturesExcelRows()],
+                       ['Avaries',_avariesExcelRows()],['Produits',_produitsExcelRows()]]
+                      .map(([n,r])=>'<h2>'+n+'</h2>'+makeTable(r)).join('')
+                    : makeTable(_getExcelRows(type));
+                const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:11pt;margin:2cm}h1{color:#0F172A;font-size:18pt;border-bottom:3px solid #F59E0B;padding-bottom:6pt}h2{color:#1E3A5F;font-size:14pt;margin-top:20pt}.logo{font-size:16pt;font-weight:bold;color:#F59E0B}.legal{font-size:9pt;color:#666}table{width:100%;border-collapse:collapse;margin-bottom:16pt}th{background:#0F172A;color:#fff;padding:6pt 8pt;font-size:10pt;text-align:left}td{padding:5pt 8pt;border-bottom:1px solid #E2E8F0;font-size:10pt}tr:nth-child(even) td{background:#F8FAFC}.pied{margin-top:20pt;text-align:center;font-size:9pt;color:#888;border-top:1px solid #ddd;padding-top:8pt}</style></head><body>'
+                    + '<div style="display:flex;justify-content:space-between;margin-bottom:16pt"><div><div class="logo">KSP BUSINESS PRO</div><div class="legal">Dépôt de Boissons — Cotonou, Bénin</div><div class="legal">RCCM : RB/COT/25 A 106911 | IFU : 2201515858900</div><div class="legal">Tél : +229 01 43 49 59 58 / +229 01 67 02 82 09</div></div>'
+                    + '<div style="text-align:right;font-size:10pt;color:#555"><div><b>'+title+'</b></div><div>'+dateLabel+'</div><div>Généré par : '+currentUser.name+'</div></div></div>'
+                    + '<h1>'+title+'</h1>'+body
+                    + '<div class="pied">KSP Business Pro | RCCM : RB/COT/25 A 106911 | IFU : 2201515858900<br>Document généré le '+new Date().toLocaleString('fr-FR')+'</div>'
+                    + '</body></html>';
+                _download(new Blob([html], {type:'application/msword'}), filename + '.doc');
+                showAlert('✅ Export Word (' + filename + '.doc) téléchargé', 'success');
+
+            } else {
+                // JSON / backup
+                const data = type==='all' ? {
+                    exportDate: new Date().toISOString(),
+                    ventes: db.load('ventes'), achats: db.load('achats'),
+                    factures: db.load('factures'), avaries: db.load('avaries'),
+                    produits: _produitsExcelRows()
+                } : _getExcelRows(type).length ? _getExcelRows(type) : db.load(type);
+                _download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}), filename+'.json');
+                showAlert('✅ Export JSON (' + filename + '.json) téléchargé', 'success');
             }
-
-            const date = new Date().toISOString().slice(0, 10);
-
-            if (format === 'json' || format === 'backup') {
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${filename}_${date}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showAlert(`✅ Export ${filename} (JSON) téléchargé`, 'success');
-
-            } else if (format === 'csv') {
-                // Générer CSV à partir d'un tableau d'objets
-                const rows = Array.isArray(data) ? data : (data.ventes || []);
-                if (!rows.length) { showAlert('Aucune donnée à exporter', 'warning'); return; }
-                const headers = Object.keys(rows[0]);
-                const csv = [
-                    headers.join(';'),
-                    ...rows.map(row => headers.map(h => {
-                        const val = row[h] === undefined ? '' : String(row[h]);
-                        return val.includes(';') ? `"${val}"` : val;
-                    }).join(';'))
-                ].join('\n');
-                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${filename}_${date}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showAlert(`✅ Export ${filename} (CSV) téléchargé`, 'success');
-            }
-
             localStorage.setItem('ksp-last-backup', Date.now().toString());
         }
 
