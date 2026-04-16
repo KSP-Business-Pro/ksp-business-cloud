@@ -1847,7 +1847,8 @@
                             <td><span class="badge badge-success">✅ ${vente.statut}</span></td>
                             <td>
                                 <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;" onclick="viewVenteDetails('${vente.id}')">👁️</button>
-                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture">🧾</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture A4">🧾</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-right: 4px; color: var(--secondary);" onclick="printTicketCaisse('${vente.id}')" title="Ticket de caisse A5">🎫</button>
                                 ${currentUser.permissions.canDelete ? 
                                     `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteVente('${vente.id}')" title="Supprimer la vente">🗑️</button>` : 
                                     ''
@@ -1990,7 +1991,8 @@
                                     <span style="font-size:12px;color:var(--text-muted);">Opération #${idx + 1} — ${new Date(op.date).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})}</span>
                                     <div style="display:flex;gap:8px;align-items:center;">
                                         <span style="font-weight:700;color:var(--secondary);">${formatMoney(op.total)}</span>
-                                        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printOperationJour('${op.operationId}')">🧾 Imprimer</button>
+                                        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;" onclick="printOperationJour('${op.operationId}')">🧾 Facture</button>
+                                        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;color:var(--secondary);" onclick="printTicketCaisseOp('${op.operationId}')">🎫 Ticket</button>
                                     </div>
                                 </div>
                                 <table class="table" style="margin:0;">
@@ -4161,6 +4163,123 @@
             const total = factures.reduce((s,f) => s+f.total, 0);
             const rows = factures.map(f => `<tr><td style="font-family:monospace;font-weight:bold;">${f.numero}</td><td>${formatDate(f.date)}</td><td>${f.client}</td><td><b>${formatMoney(f.total)}</b></td><td><span class="badge badge-orange">${f.statut}</span></td><td>${f.utilisateur}</td></tr>`).join('');
             printWindow(`<div class="header"><div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;">Liste des Factures</div></div><div class="meta">${factures.length} factures — Total : ${formatMoney(total)}</div></div><h2>📄 Toutes les Factures</h2><table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Montant</th><th>Statut</th><th>Émis par</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="3"><b>TOTAL</b></td><td><b>${formatMoney(total)}</b></td><td colspan="2"></td></tr></tbody></table>`);
+        }
+
+        // ============================================================
+        //  TICKET DE CAISSE — Format A5 (148mm x 210mm)
+        // ============================================================
+
+        function printTicketCaisse(venteId) {
+            const toutesVentes = db.load('ventes');
+            const v = toutesVentes.find(x => x.id === venteId);
+            if (!v) { showAlert('Vente introuvable', 'error'); return; }
+            const items = v.operationId
+                ? toutesVentes.filter(x => x.operationId === v.operationId)
+                : [v];
+            _renderTicket(items, v);
+        }
+
+        function printTicketCaisseOp(operationId) {
+            const toutesVentes = db.load('ventes');
+            const items = toutesVentes.filter(x => (x.operationId || x.id) === operationId);
+            if (!items.length) { showAlert('Opération introuvable', 'error'); return; }
+            _renderTicket(items, items[0]);
+        }
+
+        function _renderTicket(items, ref) {
+            const total = items.reduce((s, i) => s + i.total, 0);
+            const num = 'T-' + (ref.operationId || ref.id).slice(-6).toUpperCase();
+            const dateStr = new Date(ref.date).toLocaleString('fr-FR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            const nbArticles = items.reduce((s, i) => s + i.quantite, 0);
+
+            const lignes = items.map(i => `
+                <div class="ligne">
+                    <div class="prod">${i.produitNom}</div>
+                    <div class="detail">
+                        <span>${i.quantite} x ${formatMoney(i.prixUnitaire)}</span>
+                        <span class="montant">${formatMoney(i.total)}</span>
+                    </div>
+                </div>`).join('');
+
+            const win = window.open('', '_blank', 'width=560,height=760');
+            win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+            <title>Ticket ${num}</title>
+            <style>
+                @page { size: A5; margin: 8mm; }
+                * { margin:0; padding:0; box-sizing:border-box; }
+                body {
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 13px;
+                    color: #111;
+                    width: 148mm;
+                    padding: 6mm;
+                    background: #fff;
+                }
+                .entete { text-align:center; border-bottom: 2px dashed #333; padding-bottom: 8px; margin-bottom: 10px; }
+                .logo { font-size: 22px; font-weight: bold; letter-spacing: 2px; }
+                .sous-logo { font-size: 11px; color: #555; margin-top: 2px; }
+                .ref { font-size: 11px; color: #555; margin-top: 6px; }
+                .client-bloc { background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; margin-bottom: 10px; }
+                .client-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; }
+                .client-nom { font-size: 15px; font-weight: bold; }
+                .articles-titre { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 6px; }
+                .ligne { margin-bottom: 8px; }
+                .prod { font-weight: bold; font-size: 13px; }
+                .detail { display: flex; justify-content: space-between; font-size: 12px; color: #444; margin-top: 2px; }
+                .montant { font-weight: bold; color: #111; }
+                .separateur { border: none; border-top: 1px dashed #999; margin: 10px 0; }
+                .total-bloc { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-top: 2px solid #111; border-bottom: 2px solid #111; margin: 6px 0 12px; }
+                .total-label { font-size: 14px; font-weight: bold; text-transform: uppercase; }
+                .total-val { font-size: 22px; font-weight: bold; }
+                .resume { display: flex; justify-content: space-between; font-size: 11px; color: #555; margin-bottom: 10px; }
+                .pied { text-align: center; font-size: 11px; color: #888; border-top: 1px dashed #ccc; padding-top: 8px; line-height: 1.7; }
+                .merci { font-size: 14px; font-weight: bold; color: #111; margin-top: 6px; }
+                @media print {
+                    body { width: 100%; padding: 0; }
+                    .no-print { display: none; }
+                }
+            </style></head><body>
+
+            <div class="entete">
+                <div class="logo">🍺 KSP BUSINESS</div>
+                <div class="sous-logo">Dépôt de Boissons — Cotonou, Bénin</div>
+                <div class="ref">Ticket N° ${num} &nbsp;|&nbsp; ${dateStr}</div>
+                <div class="ref">Caissier : ${ref.utilisateur}</div>
+            </div>
+
+            <div class="client-bloc">
+                <div class="client-label">Client</div>
+                <div class="client-nom">${ref.client}</div>
+            </div>
+
+            <div class="articles-titre">Articles (${items.length} référence${items.length > 1 ? 's' : ''})</div>
+            ${lignes}
+
+            <hr class="separateur">
+
+            <div class="total-bloc">
+                <span class="total-label">Total à Payer</span>
+                <span class="total-val">${formatMoney(total)}</span>
+            </div>
+
+            <div class="resume">
+                <span>${nbArticles} article${nbArticles > 1 ? 's' : ''}</span>
+                <span>${items.length} référence${items.length > 1 ? 's' : ''}</span>
+                <span>Payé en espèces</span>
+            </div>
+
+            <div class="pied">
+                <div class="merci">Merci pour votre achat !</div>
+                <div>Conservez ce ticket en cas de réclamation</div>
+                <div>KSP Business Pro — ksp-business-cloud.vercel.app</div>
+            </div>
+
+            <script>window.onload = function(){ window.print(); }<\/script>
+            </body></html>`);
+            win.document.close();
         }
 
         // --- Imprimer facture depuis une vente (tous produits de la même opération) ---
