@@ -654,7 +654,7 @@
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="card-icon">🍺</span>
-                                Catalogue SOBEBRA - 26 Produits (Configuration)
+                                Catalogue Produits — 74 références (Configuration)
                             </div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline" onclick="resetAllPrices()">
@@ -1005,7 +1005,30 @@
             { id: 52, nom: "Gaz Oryx", format: "6KG", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 6, categorie: "Autres produits" },
             { id: 53, nom: "Gaz Oryx", format: "12KG", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 4, categorie: "Autres produits" },
             { id: 54, nom: "Gaz Bénin Pétro", format: "3KG", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 10, categorie: "Autres produits" },
-            { id: 55, nom: "Rox Cannette", format: "0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 25, categorie: "Autres produits" }
+            { id: 55, nom: "Rox Cannette", format: "0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 25, categorie: "Autres produits" },
+
+            // ½ PACK LOMÉ CANNETTES - 9 demi-packs (12 cannettes)
+            { id: 56, nom: "World Cola Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 57, nom: "Youzou Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 58, nom: "Fanta Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 59, nom: "Limonade Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 60, nom: "Cocktail Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 61, nom: "Malta Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 62, nom: "Tonic Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 63, nom: "Malta Guinness", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+            { id: 64, nom: "Radler", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Lomé" },
+
+            // ½ PACK NIGÉRIA PET - 10 demi-packs (12 bouteilles PET / 12 cannettes)
+            { id: 65, nom: "Coca PET", format: "½ Pack 12x0.5L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 66, nom: "Fanta PET", format: "½ Pack 12x0.5L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 67, nom: "Sprite PET", format: "½ Pack 12x0.5L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 68, nom: "Fearless", format: "½ Pack 12x0.5L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 69, nom: "Reaktor", format: "½ Pack 12x0.5L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 70, nom: "Razzl", format: "½ Pack 12x0.5L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 71, nom: "Lacasera", format: "½ Pack 12x0.5L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 72, nom: "Coca Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 73, nom: "Sprite Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" },
+            { id: 74, nom: "Fanta Cannette", format: "½ Pack 12x0.33L", prixAchat: 0, prixVente: 0, stock: 0, stockMin: 5, categorie: "½ Pack Nigéria PET" }
         ];
 
         const modules = {
@@ -1413,7 +1436,7 @@
                         <h4 style="color: var(--primary); margin-bottom: 16px; font-size: 16px;">✅ Modules Core Fonctionnels</h4>
                         <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.8;">
                             • <strong>Connexion sécurisée</strong> multi-utilisateurs<br>
-                            • <strong>Gestion complète stocks</strong> (55 produits catalog)<br>
+                            • <strong>Gestion complète stocks</strong> (74 produits catalogue)<br>
                             • <strong>Module Ventes</strong> avec formulaires complets<br>
                             • <strong>Module Achats</strong> et approvisionnement<br>
                             • <strong>Génération factures</strong> automatique<br>
@@ -3148,7 +3171,7 @@
                         <div class="stat-label">Produits Configurés</div>
                         <div class="stat-icon">⚙️</div>
                     </div>
-                    <div class="stat-value" data-stat="configured">${produitsConfigures}/55</div>
+                    <div class="stat-value" data-stat="configured">${produitsConfigures}/${produits.length}</div>
                     <div class="stat-change ${produitsConfigures === 55 ? 'positive' : 'neutral'}" data-stat-change="configured">
                         <span>${produitsConfigures === 55 ? '✅' : '🔧'}</span>
                         ${produitsConfigures === 55 ? 'Complet' : 'En cours'}
@@ -3184,7 +3207,7 @@
                         <div class="stat-label">À Configurer</div>
                         <div class="stat-icon">🔧</div>
                     </div>
-                    <div class="stat-value" data-stat="remaining">${55 - produitsConfigures}</div>
+                    <div class="stat-value" data-stat="remaining">${produits.length - produitsConfigures}</div>
                     <div class="stat-change ${produitsConfigures === 55 ? 'positive' : 'warning'}" data-stat-change="remaining">
                         <span>⚡</span>
                         Restants
@@ -3427,7 +3450,7 @@
             if (valueStat) valueStat.textContent = formatMoney(totalStockValue);
             
             const remainingStat = document.querySelector('[data-stat="remaining"]');
-            if (remainingStat) remainingStat.textContent = 55 - produitsConfigures;
+            if (remainingStat) remainingStat.textContent = produits.length - produitsConfigures;
             
             // Mettre à jour les indicateurs de couleur
             const configuredChange = document.querySelector('[data-stat-change="configured"]');
@@ -3565,7 +3588,7 @@
             try {
                 await db.saveProducts();
                 updateProduitsStats();
-                showAlert(`Configuration sauvée dans le cloud !\n${configured}/55 produits configurés`, 'success');
+                showAlert(`Configuration sauvée dans le cloud !\n${configured}/${produits.length} produits configurés`, 'success');
             } catch(e) {
                 showAlert('Erreur sauvegarde: ' + e.message, 'error');
             }
