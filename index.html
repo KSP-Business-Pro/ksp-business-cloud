@@ -1029,6 +1029,19 @@
         //  SUPABASE CONFIGURATION
         // ============================================================
         const SUPABASE_URL = 'https://erkipxhbgnchycbkbjtv.supabase.co';
+
+        // ── Informations légales KSP Business ────────────────────────────
+        const KSP_HEADER_HTML = `
+            <div style="text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #f59e0b;">
+                <div style="font-size:22px;font-weight:900;letter-spacing:1px;color:#111;">🍺 KSP BUSINESS PRO</div>
+                <div style="font-size:12px;color:#444;margin-top:2px;">Dépôt de Boissons — Cotonou, Bénin</div>
+                <div style="font-size:11px;color:#555;margin-top:5px;line-height:1.7;">
+                    N°RCCM : <b>RB/COT/25 A 106911</b> &nbsp;|&nbsp; IFU : <b>2201515858900</b><br>
+                    Tél : <b>+229 01 43 49 59 58 / +229 01 67 02 82 09</b> &nbsp;|&nbsp; WhatsApp : <b>+229 01 94 76 00 76</b>
+                </div>
+            </div>`;
+
+        const KSP_HEADER_COMPACT = `🍺 KSP BUSINESS &nbsp;|&nbsp; RCCM: RB/COT/25 A 106911 &nbsp;|&nbsp; IFU: 2201515858900`;
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVya2lweGhiZ25jaHljYmtianR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTE5MjAsImV4cCI6MjA4ODI4NzkyMH0.wgrVm5a1INc-gQ4EpyqMOmSXIKqFdQGMIceuH4Fecak';
 
         const sbFetch = async (method, table, body = null, params = '', extraHeaders = {}) => {
@@ -2025,7 +2038,7 @@
 
             printWindow(`
                 <div class="header">
-                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons — Cotonou</div></div>
+                    <div><div class="logo">🍺 KSP BUSINESS PRO</div><div class="legal-info">Dépôt de Boissons — Cotonou, Bénin<br>RCCM : <b>RB/COT/25 A 106911</b> &nbsp;|&nbsp; IFU : <b>2201515858900</b><br>Tél : +229 01 43 49 59 58 / +229 01 67 02 82 09 &nbsp;|&nbsp; WhatsApp : +229 01 94 76 00 76</div></div>
                     <div class="meta"><b>FACTURE ${num}</b><br>${dateLabel}<br>Vendeur : ${ref.utilisateur}</div>
                 </div>
                 <div style="margin-bottom:16px;padding:12px;background:#f9f9f9;border-radius:6px;">
@@ -2083,7 +2096,7 @@
 
             printWindow(`
                 <div class="header">
-                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons — Cotonou</div></div>
+                    <div><div class="logo">🍺 KSP BUSINESS PRO</div><div class="legal-info">Dépôt de Boissons — Cotonou, Bénin<br>RCCM : <b>RB/COT/25 A 106911</b> &nbsp;|&nbsp; IFU : <b>2201515858900</b><br>Tél : +229 01 43 49 59 58 / +229 01 67 02 82 09 &nbsp;|&nbsp; WhatsApp : +229 01 94 76 00 76</div></div>
                     <div class="meta"><b>RELEVÉ JOURNALIER</b><br>${dateLabel}</div>
                 </div>
                 <div style="margin-bottom:16px;padding:12px;background:#f9f9f9;border-radius:6px;">
@@ -2141,7 +2154,7 @@
 
             printWindow(`
                 <div class="header">
-                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons — Cotonou</div></div>
+                    <div><div class="logo">🍺 KSP BUSINESS PRO</div><div class="legal-info">Dépôt de Boissons — Cotonou, Bénin<br>RCCM : <b>RB/COT/25 A 106911</b> &nbsp;|&nbsp; IFU : <b>2201515858900</b><br>Tél : +229 01 43 49 59 58 / +229 01 67 02 82 09 &nbsp;|&nbsp; WhatsApp : +229 01 94 76 00 76</div></div>
                     <div class="meta"><b>RAPPORT JOURNALIER</b><br>${dateLabel}<br>${operations.length} opération(s) · ${Object.keys(parClient).length} client(s)</div>
                 </div>
                 ${clientsHtml}
@@ -4133,6 +4146,7 @@
                 .header { border-bottom: 3px solid #f59e0b; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
                 .logo { font-size: 22px; font-weight: 900; color: #f59e0b; }
                 .meta { text-align: right; font-size: 11px; color: #666; }
+                .legal-info { font-size: 10px; color: #555; margin-top: 3px; line-height: 1.6; }
                 table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
                 th { background: #f59e0b; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; }
                 td { padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 11px; }
@@ -4149,10 +4163,15 @@
                 .facture-box { border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; max-width: 600px; margin: 0 auto; }
                 .facture-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
                 .facture-total { display: flex; justify-content: space-between; padding: 10px 0; font-size: 16px; font-weight: bold; color: #f59e0b; border-top: 2px solid #f59e0b; margin-top: 8px; }
-                .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+                .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.8; }
                 @media print { body { padding: 10px; } .no-print { display: none; } }
             </style></head><body>${html}
-            <div class="footer">KSP BUSINESS PRO — Imprimé le ${new Date().toLocaleString('fr-FR')}</div>
+            <div class="footer">
+                <div style="font-weight:bold;color:#555;">KSP BUSINESS PRO — Dépôt de Boissons, Cotonou, Bénin</div>
+                <div>N°RCCM : <b>RB/COT/25 A 106911</b> &nbsp;|&nbsp; IFU : <b>2201515858900</b></div>
+                <div>Tél : +229 01 43 49 59 58 / +229 01 67 02 82 09 &nbsp;|&nbsp; WhatsApp : +229 01 94 76 00 76</div>
+                <div style="margin-top:4px;color:#bbb;">Imprimé le ${new Date().toLocaleString('fr-FR')}</div>
+            </div>
             <script>window.onload = function(){ window.print(); }<\/script>
             </body></html>`);
             win.document.close();
@@ -4245,9 +4264,12 @@
             </style></head><body>
 
             <div class="entete">
-                <div class="logo">🍺 KSP BUSINESS</div>
+                <div class="logo">🍺 KSP BUSINESS PRO</div>
                 <div class="sous-logo">Dépôt de Boissons — Cotonou, Bénin</div>
-                <div class="ref">Ticket N° ${num} &nbsp;|&nbsp; ${dateStr}</div>
+                <div class="ref">RCCM : <b>RB/COT/25 A 106911</b> &nbsp;|&nbsp; IFU : <b>2201515858900</b></div>
+                <div class="ref">Tél : +229 01 43 49 59 58 / +229 01 67 02 82 09</div>
+                <div class="ref">WhatsApp : +229 01 94 76 00 76</div>
+                <div class="ref" style="margin-top:4px;">Ticket N° ${num} &nbsp;|&nbsp; ${dateStr}</div>
                 <div class="ref">Caissier : ${ref.utilisateur}</div>
             </div>
 
@@ -4275,7 +4297,8 @@
             <div class="pied">
                 <div class="merci">Merci pour votre achat !</div>
                 <div>Conservez ce ticket en cas de réclamation</div>
-                <div>KSP Business Pro — ksp-business-cloud.vercel.app</div>
+                <div style="margin-top:4px;">RCCM : RB/COT/25 A 106911 &nbsp;|&nbsp; IFU : 2201515858900</div>
+                <div>Tél : +229 01 43 49 59 58 &nbsp;|&nbsp; WA : +229 01 94 76 00 76</div>
             </div>
 
             <script>window.onload = function(){ window.print(); }<\/script>
@@ -4307,7 +4330,7 @@
 
             printWindow(`
                 <div class="header">
-                    <div><div class="logo">🍺 KSP BUSINESS</div><div style="font-size:11px;color:#666;">Dépôt de Boissons</div></div>
+                    <div><div class="logo">🍺 KSP BUSINESS PRO</div><div class="legal-info">Dépôt de Boissons — Cotonou, Bénin<br>RCCM : <b>RB/COT/25 A 106911</b> &nbsp;|&nbsp; IFU : <b>2201515858900</b><br>Tél : +229 01 43 49 59 58 / +229 01 67 02 82 09 &nbsp;|&nbsp; WhatsApp : +229 01 94 76 00 76</div></div>
                     <div class="meta"><b>FACTURE ${numero}</b><br>Date : ${formatDate(v.date)}<br>Vendeur : ${v.utilisateur}</div>
                 </div>
                 <div style="margin-bottom:16px;">
