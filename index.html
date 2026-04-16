@@ -295,19 +295,23 @@
                                 <div style="position:relative;">
                                     <input type="number" class="form-input" id="vente-prix" readonly style="font-weight:bold;font-size:16px;color:var(--secondary);">
                                     <div id="price-controls" style="display:none;margin-top:12px;">
-                                        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-100)" style="padding:4px 8px;font-size:11px;">-100</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-50)" style="padding:4px 8px;font-size:11px;">-50</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-25)" style="padding:4px 8px;font-size:11px;">-25</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(-5)" style="padding:4px 8px;font-size:11px;border-color:var(--primary);color:var(--primary);">-5</button>
-                                            <button type="button" class="btn btn-primary" onclick="resetPrice()" style="padding:4px 8px;font-size:11px;">Reset</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(5)" style="padding:4px 8px;font-size:11px;border-color:var(--primary);color:var(--primary);">+5</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(25)" style="padding:4px 8px;font-size:11px;">+25</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(50)" style="padding:4px 8px;font-size:11px;">+50</button>
-                                            <button type="button" class="btn btn-outline" onclick="adjustPrice(100)" style="padding:4px 8px;font-size:11px;">+100</button>
+                                        <!-- Ajustement par paliers de 5 -->
+                                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                                            <button type="button" class="btn btn-danger" onclick="adjustPrice(-5)" style="padding:6px 14px;font-size:14px;font-weight:700;min-width:48px;">−5</button>
+                                            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                                                <input type="number" id="price-adjust-input" step="5" min="-100" max="100" value="0"
+                                                    style="width:100%;padding:6px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:600;"
+                                                    oninput="applyPriceAdjustInput()"
+                                                    placeholder="Ajustement (multiple de 5)">
+                                                <div style="font-size:10px;color:var(--text-muted);">Saisir un montant (−100 à +100, multiple de 5)</div>
+                                            </div>
+                                            <button type="button" class="btn btn-secondary" onclick="adjustPrice(5)" style="padding:6px 14px;font-size:14px;font-weight:700;min-width:48px;">+5</button>
                                         </div>
-                                        <input type="range" id="price-slider" min="50" max="200" step="5" value="100" style="width:100%;margin-bottom:8px;" oninput="updatePriceFromSlider()">
-                                        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);"><span>-50%</span><span>Prix Normal</span><span>+100%</span></div>
+                                        <!-- Reset -->
+                                        <div style="display:flex;gap:8px;align-items:center;">
+                                            <button type="button" class="btn btn-primary" onclick="resetPrice()" style="padding:5px 16px;font-size:12px;flex:1;">🔄 Reset Prix Original</button>
+                                            <span id="price-adjust-display" style="font-size:12px;color:var(--text-muted);min-width:80px;text-align:right;"></span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1594,45 +1598,60 @@
         // Fonction pour ajuster le prix avec boutons
         function adjustPrice(delta) {
             if (!isPriceModeUnlocked) return;
-            
             const priceInput = document.getElementById('vente-prix');
             const currentPrice = parseFloat(priceInput.value) || 0;
-            const newPrice = Math.max(0, currentPrice + delta);
-            
+            // Forcer le delta à être un multiple de 5
+            const safeDelta = Math.round(delta / 5) * 5;
+            const newPrice = Math.max(0, currentPrice + safeDelta);
             priceInput.value = newPrice;
+            // Mettre à jour le champ d'ajustement affiché
+            const orig = parseFloat(document.getElementById('vente-prix-original').value) || 0;
+            const totalAdj = newPrice - orig;
+            const adjInput = document.getElementById('price-adjust-input');
+            if (adjInput) adjInput.value = totalAdj;
+            updateAdjustDisplay(totalAdj);
             updateVenteTotal();
             updatePriceInfo();
-            
-            // Mettre à jour le slider
-            if (originalPrice > 0) {
-                const percentage = (newPrice / originalPrice) * 100;
-                document.getElementById('price-slider').value = Math.max(50, Math.min(200, percentage));
-            }
+        }
+
+        function applyPriceAdjustInput() {
+            if (!isPriceModeUnlocked) return;
+            const adjInput = document.getElementById('price-adjust-input');
+            let val = parseInt(adjInput.value) || 0;
+            // Arrondir au multiple de 5 le plus proche
+            val = Math.round(val / 5) * 5;
+            val = Math.max(-100, Math.min(100, val));
+            adjInput.value = val;
+            const orig = parseFloat(document.getElementById('vente-prix-original').value) || 0;
+            const newPrice = Math.max(0, orig + val);
+            document.getElementById('vente-prix').value = newPrice;
+            updateAdjustDisplay(val);
+            updateVenteTotal();
+            updatePriceInfo();
+        }
+
+        function updateAdjustDisplay(adj) {
+            const el = document.getElementById('price-adjust-display');
+            if (!el) return;
+            if (adj === 0) { el.textContent = 'Prix normal'; el.style.color = 'var(--text-muted)'; }
+            else if (adj > 0) { el.textContent = `+${formatMoney(adj)}`; el.style.color = 'var(--secondary)'; }
+            else { el.textContent = formatMoney(adj); el.style.color = 'var(--danger)'; }
         }
 
         // Fonction pour remettre le prix original
         function resetPrice() {
             const originalPriceValue = parseFloat(document.getElementById('vente-prix-original').value) || 0;
             document.getElementById('vente-prix').value = originalPriceValue;
-            document.getElementById('price-slider').value = 100;
-            document.getElementById('price-reason').value = '';
+            const adjInput = document.getElementById('price-adjust-input');
+            if (adjInput) adjInput.value = 0;
+            updateAdjustDisplay(0);
+            if (document.getElementById('price-reason')) document.getElementById('price-reason').value = '';
             updateVenteTotal();
             updatePriceInfo();
         }
 
-        // Fonction pour mettre à jour le prix depuis le slider
-        function updatePriceFromSlider() {
-            if (!isPriceModeUnlocked) return;
-            
-            const slider = document.getElementById('price-slider');
-            const percentage = parseFloat(slider.value);
-            const originalPriceValue = parseFloat(document.getElementById('vente-prix-original').value) || 0;
-            const newPrice = (originalPriceValue * percentage / 100);
-            
-            document.getElementById('vente-prix').value = newPrice.toFixed(0);
-            updateVenteTotal();
-            updatePriceInfo();
-        }
+        // Stub conservé pour compatibilité (slider supprimé)
+        function updatePriceFromSlider() {}
 
         // Fonction pour mettre à jour les informations de modification de prix
         function updatePriceInfo() {
