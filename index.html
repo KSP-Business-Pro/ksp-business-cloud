@@ -889,6 +889,7 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title"><span class="card-icon">👥</span>Gestion des Utilisateurs</div>
+                            <button class="btn btn-primary" onclick="openAddUser()"><span>➕</span> Nouvel Utilisateur</button>
                         </div>
                         <div id="users-list" style="display:grid;gap:12px;"></div>
                     </div>
@@ -912,7 +913,7 @@
 
     <script>
         // Configuration complète avec tous les modules fonctionnels
-        const users = {
+        let users = {
             'GERANTE': { 
                 password: 'Bougnon@5', 
                 name: 'MOUSSA N. Rahamatou Laye', 
@@ -1324,6 +1325,7 @@
             if (!isOnline) {
                 offlineQueue.push({ table, data: { id: record.id, produit_id: record.produitId || null, data: record, created_at: new Date().toISOString() } });
                 localStorage.setItem('ksp-offline-queue', JSON.stringify(offlineQueue));
+                updateOfflineCounter();
                 showAlert('⚠️ Hors-ligne : opération mise en file d\'attente', 'warning');
                 return;
             }
@@ -1512,7 +1514,7 @@
             document.getElementById('modal-change-password').style.display = 'none';
         }
 
-        function confirmChangePassword() {
+        async function confirmChangePassword() {
             const username = document.getElementById('chpwd-username').value;
             const current = document.getElementById('chpwd-current').value;
             const newPwd = document.getElementById('chpwd-new').value;
@@ -1536,6 +1538,7 @@
             }
 
             users[username].password = newPwd;
+            await saveUserPassword(username, newPwd);
             auditLog('PASSWORD_CHANGE', `Mot de passe changé pour : ${username}`);
             closeChangePassword();
             showAlert(`✅ Mot de passe de ${username} modifié avec succès`, 'success');
@@ -4187,6 +4190,7 @@
                     </div>
                     <div style="display:flex;gap:6px;flex-shrink:0;">
                         <button class="btn btn-outline" style="padding:6px 10px;font-size:11px;" onclick="openChangePassword('${user.username}')">🔑 Changer MDP</button>
+                        ${!user.isCurrentUser && user.username !== 'GERANTE' ? `<button class="btn btn-danger" style="padding:6px 10px;font-size:11px;" onclick="deleteUser('${user.username}')">🗑️</button>` : ''}
                         ${user.isCurrentUser ? `<span class="badge badge-success" style="padding:6px 10px;">Votre compte</span>` : ''}
                     </div>
                 </div>`).join('');
@@ -4877,7 +4881,167 @@
             showAlert('Export JSON téléchargé avec succès'); 
             if (currentPage === 'exportimport') renderExportImport(); 
         }
-        function addUser() { showAlert('Module ajout utilisateur opérationnel', 'success'); }
+        // ============================================================
+        //  PERSISTANCE MOTS DE PASSE & GESTION UTILISATEURS
+        // ============================================================
+
+        // Charger les mots de passe depuis Supabase (écrase les valeurs JS)
+        async function loadUserPasswords() {
+            try {
+                const rows = await sbFetch('GET', 'users_config', null, '');
+                (rows || []).forEach(row => {
+                    if (users[row.username]) {
+                        users[row.username].password = row.password;
+                        if (row.name) users[row.username].name = row.name;
+                    } else {
+                        // Utilisateur personnalisé créé depuis l'app
+                        users[row.username] = {
+                            password: row.password,
+                            name: row.name || row.username,
+                            role: row.role || 'operateur',
+                            avatar: row.avatar || '👤',
+                            modules: JSON.parse(row.modules || '["stock","ventes","achats","factures","produits","avaries"]'),
+                            permissions: JSON.parse(row.permissions || '{"canCreate":false,"canModify":false,"canDelete":false,"canExport":false}')
+                        };
+                    }
+                });
+            } catch(e) {
+                // Table pas encore créée — on utilise les valeurs JS par défaut
+                console.warn('users_config non disponible:', e.message);
+            }
+        }
+
+        async function saveUserPassword(username, newPassword) {
+            try {
+                const payload = {
+                    username,
+                    password: newPassword,
+                    name: users[username].name,
+                    role: users[username].role,
+                    avatar: users[username].avatar,
+                    modules: JSON.stringify(users[username].modules),
+                    permissions: JSON.stringify(users[username].permissions)
+                };
+                await sbFetch('POST', 'users_config', payload, '',
+                    { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+            } catch(e) {
+                console.warn('Impossible de sauvegarder le mot de passe:', e.message);
+            }
+        }
+
+        async function saveNewUser(username, userData) {
+            try {
+                const payload = {
+                    username,
+                    password: userData.password,
+                    name: userData.name,
+                    role: userData.role,
+                    avatar: userData.avatar,
+                    modules: JSON.stringify(userData.modules),
+                    permissions: JSON.stringify(userData.permissions)
+                };
+                await sbFetch('POST', 'users_config', payload, '',
+                    { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+            } catch(e) {
+                showAlert('Avertissement : utilisateur créé localement seulement — ' + e.message, 'warning');
+            }
+        }
+
+        async function deleteUserFromDB(username) {
+            try {
+                await sbFetch('DELETE', 'users_config', null, `?username=eq.${encodeURIComponent(username)}`);
+            } catch(e) {
+                console.warn('Erreur suppression utilisateur:', e.message);
+            }
+        }
+
+        // ── Ajout utilisateur ──────────────────────────────────────
+        function openAddUser() {
+            document.getElementById('adduser-username').value = '';
+            document.getElementById('adduser-name').value = '';
+            document.getElementById('adduser-password').value = '';
+            document.getElementById('adduser-role').value = 'operateur';
+            document.getElementById('adduser-error').textContent = '';
+            updateAddUserModules();
+            document.getElementById('modal-add-user').style.display = 'flex';
+        }
+
+        function closeAddUser() {
+            document.getElementById('modal-add-user').style.display = 'none';
+        }
+
+        function updateAddUserModules() {
+            const role = document.getElementById('adduser-role').value;
+            const allModules = ['dashboard','stock','ventes','achats','factures','produits','avaries','transactions','exportimport','marges','users'];
+            const roleModules = {
+                admin: allModules,
+                gestionnaire: ['dashboard','stock','ventes','achats','factures','produits','avaries'],
+                operateur: ['stock','ventes','achats','factures','produits','avaries']
+            };
+            const rolePerms = {
+                admin: { canCreate:true, canModify:true, canDelete:true, canExport:true },
+                gestionnaire: { canCreate:true, canModify:true, canDelete:false, canExport:true },
+                operateur: { canCreate:false, canModify:false, canDelete:false, canExport:false }
+            };
+            const mods = roleModules[role] || roleModules.operateur;
+            document.getElementById('adduser-modules-preview').textContent =
+                mods.length + ' modules : ' + mods.join(', ');
+            document.getElementById('adduser-role').dataset.modules = JSON.stringify(mods);
+            document.getElementById('adduser-role').dataset.perms = JSON.stringify(rolePerms[role]);
+        }
+
+        async function confirmAddUser() {
+            const username = document.getElementById('adduser-username').value.trim();
+            const name = document.getElementById('adduser-name').value.trim();
+            const password = document.getElementById('adduser-password').value;
+            const role = document.getElementById('adduser-role').value;
+            const errEl = document.getElementById('adduser-error');
+
+            if (!username || !name || !password) { errEl.textContent = '❌ Tous les champs sont obligatoires'; return; }
+            if (users[username]) { errEl.textContent = '❌ Cet identifiant existe déjà'; return; }
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) { errEl.textContent = '❌ Identifiant : lettres, chiffres et _ uniquement'; return; }
+            if (password.length < 8) { errEl.textContent = '❌ Mot de passe : 8 caractères minimum'; return; }
+            if (!/[A-Z]/.test(password)) { errEl.textContent = '❌ Mot de passe : au moins 1 majuscule'; return; }
+            if (!/[0-9@#$!%*?&]/.test(password)) { errEl.textContent = '❌ Mot de passe : au moins 1 chiffre ou @#$!'; return; }
+
+            const roleEl = document.getElementById('adduser-role');
+            const modules = JSON.parse(roleEl.dataset.modules || '[]');
+            const permissions = JSON.parse(roleEl.dataset.perms || '{}');
+            const avatars = { admin:'👑', gestionnaire:'👩‍💼', operateur:'👨‍💻' };
+
+            const newUser = { password, name, role, avatar: avatars[role]||'👤', modules, permissions };
+            users[username] = newUser;
+            await saveNewUser(username, newUser);
+            auditLog('USER_CREATED', `Nouvel utilisateur créé : ${username} (${role})`);
+            closeAddUser();
+            showAlert(`✅ Utilisateur @${username} créé avec succès`, 'success');
+            renderUsers();
+        }
+
+        async function deleteUser(username) {
+            if (username === 'GERANTE') { showAlert('Impossible de supprimer le compte administrateur principal', 'error'); return; }
+            if (username === currentUser.username) { showAlert('Impossible de supprimer votre propre compte', 'error'); return; }
+            if (!confirm(`Supprimer définitivement l'utilisateur @${username} ?`)) return;
+            delete users[username];
+            await deleteUserFromDB(username);
+            auditLog('USER_DELETED', `Utilisateur supprimé : ${username}`);
+            showAlert(`Utilisateur @${username} supprimé`, 'success');
+            renderUsers();
+        }
+
+        // ── Compteur file hors-ligne ───────────────────────────────
+        function updateOfflineCounter() {
+            const el = document.getElementById('offline-queue-count');
+            if (!el) return;
+            if (offlineQueue.length > 0) {
+                el.textContent = offlineQueue.length + ' opération(s) en attente';
+                el.style.display = 'inline-block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        function addUser() { openAddUser(); }
 
         // ============================================================
         //  INITIALISATION - Chargement depuis Supabase
@@ -4892,6 +5056,8 @@
                     await db.loadAll();
                     loadingMsg.textContent = '🍺 Chargement des produits...';
                     await db.loadProducts();
+                    loadingMsg.textContent = '🔑 Chargement des comptes...';
+                    await loadUserPasswords();
                     loadingMsg.textContent = '✅ Prêt !';
                 } else {
                     loadingMsg.textContent = '⚠️ Mode hors-ligne — données locales';
@@ -4967,6 +5133,48 @@
             <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
                 <button class="btn btn-outline" onclick="closeChangePassword()">Annuler</button>
                 <button class="btn btn-primary" onclick="confirmChangePassword()">🔑 Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Modal Ajout Utilisateur ───────────────────────────── -->
+    <div id="modal-add-user" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.65);z-index:10000;align-items:center;justify-content:center;">
+        <div style="background:var(--card);border-radius:14px;padding:28px;width:480px;max-width:95vw;border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="color:var(--text-primary);font-size:16px;">➕ Nouvel Utilisateur</h3>
+                <button onclick="closeAddUser()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;">✕</button>
+            </div>
+            <div style="display:grid;gap:14px;">
+                <div>
+                    <label class="form-label">Identifiant de connexion *</label>
+                    <input type="text" class="form-input" id="adduser-username" placeholder="Ex: caissier2 (sans espaces)">
+                </div>
+                <div>
+                    <label class="form-label">Nom complet *</label>
+                    <input type="text" class="form-input" id="adduser-name" placeholder="Ex: Marie Dupont">
+                </div>
+                <div>
+                    <label class="form-label">Rôle *</label>
+                    <select class="form-select" id="adduser-role" onchange="updateAddUserModules()">
+                        <option value="operateur">Opérateur — 6 modules (lecture/saisie)</option>
+                        <option value="gestionnaire">Gestionnaire — 7 modules (création/modification)</option>
+                        <option value="admin">Administrateur — 11 modules (accès complet)</option>
+                    </select>
+                    <div id="adduser-modules-preview" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
+                </div>
+                <div>
+                    <label class="form-label">Mot de passe *</label>
+                    <input type="password" class="form-input" id="adduser-password" placeholder="Min. 8 car., 1 majuscule, 1 chiffre ou @#$!">
+                </div>
+                <div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-muted);">
+                    <div style="font-weight:600;margin-bottom:4px;">Règles mot de passe :</div>
+                    <div>• Au moins 8 caractères · 1 majuscule · 1 chiffre ou @#$!%*?&</div>
+                </div>
+                <div id="adduser-error" style="color:var(--danger);font-size:13px;font-weight:500;min-height:18px;"></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeAddUser()">Annuler</button>
+                <button class="btn btn-primary" onclick="confirmAddUser()">💾 Créer l'utilisateur</button>
             </div>
         </div>
     </div>
