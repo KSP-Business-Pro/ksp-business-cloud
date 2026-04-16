@@ -2212,7 +2212,8 @@
                             <td><span class="badge badge-success">✅ ${vente.statut}</span></td>
                             <td>
                                 <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="viewVenteDetails('${vente.id}')">👁️</button>
-                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-left:4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture">🧾</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-left:4px; color: var(--primary);" onclick="printVenteFacture('${vente.id}')" title="Imprimer facture A4">🧾</button>
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px; margin-left:4px; color: var(--secondary);" onclick="printTicketCaisse('${vente.id}')" title="Ticket de caisse A5">🎫</button>
                             </td>
                         </tr>
                     `;
