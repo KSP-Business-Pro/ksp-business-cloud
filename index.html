@@ -853,16 +853,15 @@
                                 </div>
                             </div>
                             <div class="form-grid">
-                                <div class="form-group" style="grid-column: 1 / -1;">
-                                    <label class="form-label">Fichier</label>
-                                    <input type="file" class="form-input" id="import-file" accept=".json,.csv">
+                                <div class="form-group" style="grid-column:1/-1;">
+                                    <label class="form-label">Fichier JSON (sauvegarde KSP)</label>
+                                    <input type="file" class="form-input" id="import-file" accept=".json">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Conflits</label>
-                                    <select class="form-select" id="import-conflict">
-                                        <option value="merge">Fusionner</option>
-                                        <option value="replace">Remplacer</option>
-                                        <option value="skip">Ignorer</option>
+                                    <select class="form-select" id="import-conflicts">
+                                        <option value="ignorer">Ignorer (garder existants)</option>
+                                        <option value="remplacer">Remplacer</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -4944,31 +4943,155 @@
                 </table>`);
         }
 
-        function exportData() { 
-            const choice = confirm('Cliquez OK pour imprimer le STOCK\nCliquez Annuler pour télécharger la sauvegarde JSON');
-            if (choice) exportStock(); else createManualBackup();
+        function exportData() {
+            const type = document.getElementById('export-type').value;
+            const format = document.getElementById('export-format').value;
+
+            // Construire les données selon le type choisi
+            let data = {};
+            let filename = '';
+
+            switch(type) {
+                case 'ventes':
+                    data = db.load('ventes');
+                    filename = 'KSP_Ventes';
+                    break;
+                case 'achats':
+                    data = db.load('achats');
+                    filename = 'KSP_Achats';
+                    break;
+                case 'factures':
+                    data = db.load('factures');
+                    filename = 'KSP_Factures';
+                    break;
+                case 'avaries':
+                    data = db.load('avaries');
+                    filename = 'KSP_Avaries';
+                    break;
+                case 'produits':
+                    data = produits.map(p => ({
+                        id: p.id, nom: p.nom, format: p.format, categorie: p.categorie,
+                        prixAchat: p.prixAchat, prixVente: p.prixVente,
+                        stock: p.stock, stockMin: p.stockMin
+                    }));
+                    filename = 'KSP_Produits';
+                    break;
+                default: // all / backup
+                    data = {
+                        exportDate: new Date().toISOString(),
+                        ventes: db.load('ventes'),
+                        achats: db.load('achats'),
+                        factures: db.load('factures'),
+                        avaries: db.load('avaries'),
+                        produits: produits.map(p => ({
+                            id: p.id, nom: p.nom, format: p.format, categorie: p.categorie,
+                            prixAchat: p.prixAchat, prixVente: p.prixVente,
+                            stock: p.stock, stockMin: p.stockMin
+                        }))
+                    };
+                    filename = 'KSP_Backup_Complet';
+            }
+
+            const date = new Date().toISOString().slice(0, 10);
+
+            if (format === 'json' || format === 'backup') {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filename}_${date}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showAlert(`✅ Export ${filename} (JSON) téléchargé`, 'success');
+
+            } else if (format === 'csv') {
+                // Générer CSV à partir d'un tableau d'objets
+                const rows = Array.isArray(data) ? data : (data.ventes || []);
+                if (!rows.length) { showAlert('Aucune donnée à exporter', 'warning'); return; }
+                const headers = Object.keys(rows[0]);
+                const csv = [
+                    headers.join(';'),
+                    ...rows.map(row => headers.map(h => {
+                        const val = row[h] === undefined ? '' : String(row[h]);
+                        return val.includes(';') ? `"${val}"` : val;
+                    }).join(';'))
+                ].join('\n');
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filename}_${date}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showAlert(`✅ Export ${filename} (CSV) téléchargé`, 'success');
+            }
+
+            localStorage.setItem('ksp-last-backup', Date.now().toString());
         }
 
-        function importData() { showAlert('Module import données opérationnel', 'success'); }
+        function importData() {
+            const fileInput = document.getElementById('import-file');
+            if (!fileInput || !fileInput.files[0]) {
+                showAlert('Veuillez choisir un fichier JSON à importer', 'error');
+                return;
+            }
+            const conflits = document.getElementById('import-conflicts')?.value || 'ignorer';
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    let imported = 0;
 
-        function createManualBackup() { 
-            const data = {
-                timestamp: new Date().toISOString(),
-                produits: produits,
-                ventes: db.load('ventes'),
-                achats: db.load('achats'),
-                factures: db.load('factures'),
-                avaries: db.load('avaries')
+                    const importTable = async (key, table) => {
+                        const items = Array.isArray(data[key]) ? data[key] : [];
+                        for (const item of items) {
+                            const exists = db.cache[table] && db.cache[table].find(x => x.id === item.id);
+                            if (exists && conflits === 'ignorer') continue;
+                            if (!db.cache[table]) db.cache[table] = [];
+                            if (exists && conflits === 'remplacer') {
+                                db.cache[table] = db.cache[table].filter(x => x.id !== item.id);
+                            }
+                            db.cache[table].push(item);
+                            try {
+                                const payload = { id: item.id, produit_id: item.produitId || null, data: item, created_at: item.date || new Date().toISOString() };
+                                await sbFetch('POST', table, payload, '', { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+                                imported++;
+                            } catch(err) { console.warn('Import error:', err.message); }
+                        }
+                    };
+
+                    await importTable('ventes', 'ventes');
+                    await importTable('achats', 'achats');
+                    await importTable('factures', 'factures');
+                    await importTable('avaries', 'avaries');
+
+                    // Importer les prix/stocks produits si présents
+                    if (data.produits) {
+                        data.produits.forEach(row => {
+                            const p = produits.find(x => x.id === row.id);
+                            if (p) {
+                                if (row.prixAchat) p.prixAchat = row.prixAchat;
+                                if (row.prixVente) p.prixVente = row.prixVente;
+                                if (row.stock !== undefined) p.stock = row.stock;
+                                if (row.stockMin !== undefined) p.stockMin = row.stockMin;
+                            }
+                        });
+                        await db.saveProducts();
+                    }
+
+                    auditLog('IMPORT', `Import fichier — ${imported} entrées importées (conflits: ${conflits})`);
+                    showAlert(`✅ Import réussi — ${imported} entrée(s) importée(s)`, 'success');
+                    renderDashboard();
+                } catch(err) {
+                    showAlert('❌ Erreur import : fichier JSON invalide — ' + err.message, 'error');
+                }
             };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ksp-backup-${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showAlert('Export JSON téléchargé avec succès'); 
-            if (currentPage === 'exportimport') renderExportImport(); 
+            reader.readAsText(fileInput.files[0]);
+        }
+
+        function createManualBackup() {
+            document.getElementById('export-type').value = 'all';
+            exportData();
         }
         // ============================================================
         //  PERSISTANCE MOTS DE PASSE & GESTION UTILISATEURS
